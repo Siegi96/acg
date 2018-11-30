@@ -23,7 +23,7 @@ loadResources({
     fs_simple: 'shader/simple.fs.glsl',
     vs_single: 'shader/simple.vs.glsl',
     fs_single: 'shader/simple.fs.glsl',
-    sunglyder_model: '../models/Sun Glyder.obj',
+    paper_model: '../models/Sun Glyder.obj',
     sunglyder_material: '../models/Sun Glyder/Sun_Glyder.mtl'
 }).then(function (resources /*an object containing our keys with the loaded resources*/) {
     init(resources);
@@ -73,7 +73,7 @@ function createSceneGraph(gl, resources) {
     {
         //initialize sunglyder
         let sunglyder = new MaterialSGNode([ //use now framework implementation of material node
-            new RenderSGNode(resources.sunglyder_model)
+            new RenderSGNode(resources.paper_model)
         ]);
         //gold
         sunglyder.ambient = [0.24725, 0.1995, 0.0745, 1];
