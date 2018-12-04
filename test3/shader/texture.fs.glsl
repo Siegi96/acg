@@ -71,6 +71,8 @@ void main (void) {
     // read diffuse color from texture
 		diffuseTexColor = texture2D(u_diffuseTex, v_texCoord);
 	}
+	//gl_FragColor = diffuseTexColor; return;
+
 
 	gl_FragColor = calculateSimplePointLight(u_light, u_material, v_lightVec, v_normalVec,
 			v_eyeVec, u_diffuseTexEnabled, diffuseTexColor );

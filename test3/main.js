@@ -31,17 +31,14 @@ loadResources({
     fs_single: 'shader/single.fs.glsl',
     vs_texture: 'shader/texture.vs.glsl',
     fs_texture: 'shader/texture.fs.glsl',
-    piper_model: '../models/piper/piper_pa18.obj',
+    //piper_model: '../models/piper/piper_pa18.obj',
     piper_tex: '../models/piper/piper_diffuse.jpg',
 
-    // cubemap
-  env_winter_pos_x: '../textures/winter_cubemap/px.jpg',
-  env_winter_neg_x: '../textures/winter_cubemap/nx.jpg',
-  env_winter_pos_y: '../textures/winter_cubemap/py.jpg',
-  env_winter_neg_y: '../textures/winter_cubemap/ny.jpg',
-  env_winter_pos_z: '../textures/winter_cubemap/pz.jpg',
-  env_winter_neg_z: '../textures/winter_cubemap/nz.jpg',
+// floor  texture
+    texture_diffuse: '../textures/wood.png',
 
+
+// cubemap images
   env_pos_x: '../textures/mountains/px.jpg',
   env_neg_x: '../textures/mountains/nx.jpg',
   env_pos_y: '../textures/mountains/py.jpg',
@@ -58,13 +55,8 @@ function init(resources) {
     //create a GL context
     gl = createContext(400, 400);
 
-    textures = {
-        winter: [resources.env_winter_pos_x, resources.env_winter_neg_x,
-          resources.env_winter_pos_y, resources.env_winter_neg_y,
-          resources.env_winter_pos_z, resources.env_winter_neg_z,false],
-        mountains: [resources.env_pos_x, resources.env_neg_x, resources.env_pos_y, resources.env_neg_y, resources.env_pos_z, resources.env_neg_z,true]
-    };
-    initCubeMap(resources,textures["mountains"]);
+    cubemap =  [resources.env_pos_x, resources.env_neg_x, resources.env_pos_y, resources.env_neg_y, resources.env_pos_z, resources.env_neg_z,false]
+    initCubeMap(resources,cubemap);
 
     gl.enable(gl.DEPTH_TEST);
 
@@ -82,23 +74,12 @@ function createSceneGraph(gl, resources) {
   {
     //add skybox by putting large sphere around us
     worldEnvNode = new EnvironmentSGNode(envcubetexture,4,false,false,false,
-                    new RenderSGNode(makeSphere(10)));
+                    new RenderSGNode(makeSphere(100)));
     rootenv.append(worldEnvNode);
   }
-/*
-  {
-    //initialize
-    sphereEnvNode = new EnvironmentSGNode(envcubetexture,4,true,true,true,
-        new RenderSGNode(makeSphere(1)));
-    let sphere = new TransformationSGNode(glm.transform({ translate: [0,0, 0], rotateX : 0, rotateZ : 0, scale: 1.0 }),
-                   sphereEnvNode );
-                   //new RenderSGNode(resources.model)));
-
-    rootenv.append(sphere);
-  }*/
 
     //create root scenegraph
-    textures = {piper: resources.piper_tex};
+    textures = {piper: resources.piper_tex, wood: resources.texture_diffuse};
     const root = new ShaderSGNode(createProgram(gl, resources.vs_texture, resources.fs_texture));
 
     //light debug helper function
@@ -117,7 +98,7 @@ function createSceneGraph(gl, resources) {
         lightNode.position = [0, 0, 0];
 
         rotateLight = new TransformationSGNode(mat4.create());
-        translateLight = new TransformationSGNode(glm.translate(0,-3,3)); //translating the light is the same as setting the light position
+        translateLight = new TransformationSGNode(glm.translate(0,5,1)); //translating the light is the same as setting the light position
 
         rotateLight.append(translateLight);
         translateLight.append(lightNode);
@@ -125,7 +106,7 @@ function createSceneGraph(gl, resources) {
         root.append(rotateLight);
     }
 
-    {
+    /*{
         let textureNode = new TextureSGNode(Object.values(textures)[0], 0, 'u_diffuseTex',new RenderSGNode(resources.piper_model));
 
         let piper = new MaterialSGNode( textureNode);
@@ -139,8 +120,28 @@ function createSceneGraph(gl, resources) {
             piper
         ]);
         root.append(piperNode);
-        root.append(rootenv);
+    }*/
+
+    {
+      //initialize floor
+      //textureNodeFloor = new RenderSGNode(makeFloor());
+      textureNodeFloor =  new TextureSGNode(textures.wood, 0, 'u_diffuseTex',  new RenderSGNode(makeFloor()));
+      let floor = new MaterialSGNode( textureNodeFloor  );
+
+      //dark
+      floor.ambient = [0.5, 0.5, 0.5, 1];
+      floor.diffuse = [0.1, 0.9, 0.1, 1];
+      floor.specular = [0.5, 0.5, 0.5, 1];
+      floor.shininess = 50.0;
+      floor.lights = [lightNode];
+
+      floorNode = new TransformationSGNode(glm.transform({ translate: [0,-1,0], rotateX: -90, scale: 1}), [
+        floor
+      ]);
+      root.append(floorNode);
     }
+
+    root.append(rootenv);
 
     return root;
 }
@@ -165,7 +166,7 @@ function lerp(a, b, n) {
 function render(timeInMilliSeconds){
     checkForWindowResize(gl);
 
-    piperNode.matrix = glm.rotateY(-1000);
+    //piperNode.matrix = glm.rotateY(-1000);
     rotateLight.matrix = glm.rotateY(50);
 
     //drivePlane(timeInMilliSeconds);
@@ -177,9 +178,9 @@ function render(timeInMilliSeconds){
 
     //setup context and camera matrices
     const context = createSGContext(gl);
-    context.projectionMatrix = mat4.perspective(mat4.create(), 30, gl.drawingBufferWidth / gl.drawingBufferHeight, 0.01, 100);
+    context.projectionMatrix = mat4.perspective(mat4.create(), 30, gl.drawingBufferWidth / gl.drawingBufferHeight, 0.01, 200);
     //very primitive camera implementation
-    let lookAtMatrix = mat4.lookAt(mat4.create(), [0,-1,-4], [0,0,0], [0,1,0]);
+    let lookAtMatrix = mat4.lookAt(mat4.create(), [0,10,5], [0,0,0], [0,-1,0]);
     let mouseRotateMatrix = mat4.multiply(mat4.create(),
         glm.rotateX(camera.rotation.y),
         glm.rotateY(camera.rotation.x));
@@ -313,4 +314,21 @@ class EnvironmentSGNode extends SGNode {
     gl.activeTexture(gl.TEXTURE0 + this.textureunit);
     gl.bindTexture(gl.TEXTURE_CUBE_MAP, null);
   }
+}
+
+
+function makeFloor() {
+  var width = 100;
+  var height = 100;
+  var position = [-width, -height, 0,   width, -height, 0,   width, height, 0,   -width, height, 0];
+  var normal = [0, 0, 1,   0, 0, 1,   0, 0, 1,   0, 0, 1];
+  var texturecoordinates = [0, 0,   1, 0,   1, 1,   0, 1];
+  //var texturecoordinates = [0, 0,   5, 0,   5, 5,   0, 5];
+  var index = [0, 1, 2,   2, 3, 0];
+  return {
+    position: position,
+    normal: normal,
+    texture: texturecoordinates,
+    index: index
+  };
 }
