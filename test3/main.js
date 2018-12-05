@@ -31,8 +31,8 @@ loadResources({
     fs_single: 'shader/single.fs.glsl',
     vs_texture: 'shader/texture.vs.glsl',
     fs_texture: 'shader/texture.fs.glsl',
-    //piper_model: '../models/piper/piper_pa18.obj',
-    piper_tex: '../models/piper/piper_diffuse.jpg',
+    piper_model: '../models/airplane/Kfir.obj',
+    piper_tex: '../models/airplane/Diffuse.jpg',
 
 // floor  texture
     texture_diffuse: '../textures/wood.png',
@@ -106,7 +106,7 @@ function createSceneGraph(gl, resources) {
         root.append(rotateLight);
     }
 
-    /*{
+    {
         let textureNode = new TextureSGNode(Object.values(textures)[0], 0, 'u_diffuseTex',new RenderSGNode(resources.piper_model));
 
         let piper = new MaterialSGNode( textureNode);
@@ -116,11 +116,11 @@ function createSceneGraph(gl, resources) {
         piper.specular = [0.5, 0.5, 0.5, 1];
         piper.shininess = 4.0;
 
-        piperNode = new TransformationSGNode(glm.transform({ translate: [-3,0, 2], rotateX : 180, scale: 1 }),  [
+        piperNode = new TransformationSGNode(glm.transform({ translate: [-3,5, 2], rotateX : 0, scale: 1 }),  [
             piper
         ]);
         root.append(piperNode);
-    }*/
+    }
 
     {
       //initialize floor
