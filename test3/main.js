@@ -19,6 +19,9 @@ var textureNode;
 //textures
 var textures;
 
+//Lights
+var reverseSunDirection = [0.5, 0.7, 1];
+
 //load the required resources using a utility function
 loadResources({
     // cubemap shader
@@ -27,8 +30,6 @@ loadResources({
 
     vs_simple: 'shader/simple.vs.glsl',
     fs_simple: 'shader/simple.fs.glsl',
-    vs_single: 'shader/single.vs.glsl',
-    fs_single: 'shader/single.fs.glsl',
     vs_texture: 'shader/texture.vs.glsl',
     fs_texture: 'shader/texture.fs.glsl',
     piper_model: '../models/airplane/Kfir.obj',
@@ -82,13 +83,6 @@ function createSceneGraph(gl, resources) {
     textures = {piper: resources.piper_tex, wood: resources.texture_diffuse};
     const root = new ShaderSGNode(createProgram(gl, resources.vs_texture, resources.fs_texture));
 
-    //light debug helper function
-    function createLightSphere() {
-        return new ShaderSGNode(createProgram(gl, resources.vs_single, resources.fs_single), [
-            new RenderSGNode(makeSphere(.2,10,10))
-        ]);
-    }
-
     {
         //initialize light
         lightNode = new LightSGNode(); //use now framework implementation of light node
@@ -98,11 +92,11 @@ function createSceneGraph(gl, resources) {
         lightNode.position = [0, 0, 0];
 
         rotateLight = new TransformationSGNode(mat4.create());
-        translateLight = new TransformationSGNode(glm.translate(0,5,1)); //translating the light is the same as setting the light position
+        //translateLight = new TransformationSGNode(glm.translate(3,5,0)); //translating the light is the same as setting the light position
+        translateLight = new TransformationSGNode(glm.translate(-300,500,400)); //translating the light is the same as setting the light position
 
         rotateLight.append(translateLight);
         translateLight.append(lightNode);
-        translateLight.append(createLightSphere()); //add sphere for debugging: since we use 0,0,0 as our light position the sphere is at the same position as the light source
         root.append(rotateLight);
     }
 
@@ -124,7 +118,6 @@ function createSceneGraph(gl, resources) {
 
     {
       //initialize floor
-      //textureNodeFloor = new RenderSGNode(makeFloor());
       textureNodeFloor =  new TextureSGNode(textures.wood, 0, 'u_diffuseTex',  new RenderSGNode(makeFloor()));
       let floor = new MaterialSGNode( textureNodeFloor  );
 
@@ -167,7 +160,7 @@ function render(timeInMilliSeconds){
     checkForWindowResize(gl);
 
     //piperNode.matrix = glm.rotateY(-1000);
-    rotateLight.matrix = glm.rotateY(50);
+    //rotateLight.matrix = glm.rotateY(50);
 
     //drivePlane(timeInMilliSeconds);
 
