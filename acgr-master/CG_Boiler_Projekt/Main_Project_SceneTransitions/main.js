@@ -141,7 +141,7 @@ function init(resources) {
   createScreenRectTexture();
   screenQuadRoot=createScreenRectprogramm(gl,resources);
 
-  singleShaderProgram = createProgram(gl, resources.vs_single, resources.fs_single);
+    singleShaderProgram = createProgram(gl, resources.vs_single, resources.fs_single);
   textureShaderProgram = createProgram(gl,resources.vs_texture, resources.fs_texture);
   skyBoxShaderProgram = createProgram(gl, resources.vs_env, resources.fs_env);
   waterShaderProgram = createProgram(gl, resources.vs_water, resources.fs_water);
