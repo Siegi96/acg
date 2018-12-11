@@ -19,8 +19,6 @@ var textureNode;
 //textures
 var textures;
 
-//Lights
-var reverseSunDirection = [0.5, 0.7, 1];
 
 //load the required resources using a utility function
 loadResources({
@@ -32,8 +30,8 @@ loadResources({
     fs_simple: 'shader/simple.fs.glsl',
     vs_texture: 'shader/texture.vs.glsl',
     fs_texture: 'shader/texture.fs.glsl',
-    piper_model: '../models/airplane/Kfir.obj',
-    piper_tex: '../models/airplane/Diffuse.jpg',
+    piper_model: '../models/airplane/plane.obj',
+    piper_tex: '../models/airplane/Dirty.jpg',
 
 // floor  texture
     texture_diffuse: '../textures/wood.png',
@@ -110,7 +108,7 @@ function createSceneGraph(gl, resources) {
         piper.specular = [0.5, 0.5, 0.5, 1];
         piper.shininess = 4.0;
 
-        piperNode = new TransformationSGNode(glm.transform({ translate: [-3,5, 2], rotateX : 0, scale: 1 }),  [
+        piperNode = new TransformationSGNode(glm.transform({ translate: [0,7, 0], rotateX : 0, scale: 1 }),  [
             piper
         ]);
         root.append(piperNode);
@@ -173,7 +171,7 @@ function render(timeInMilliSeconds){
     const context = createSGContext(gl);
     context.projectionMatrix = mat4.perspective(mat4.create(), 30, gl.drawingBufferWidth / gl.drawingBufferHeight, 0.01, 200);
     //very primitive camera implementation
-    let lookAtMatrix = mat4.lookAt(mat4.create(), [0,10,5], [0,0,0], [0,-1,0]);
+    let lookAtMatrix = mat4.lookAt(mat4.create(), [0,10,10], [0,10,0], [0,-1,0]);
     let mouseRotateMatrix = mat4.multiply(mat4.create(),
         glm.rotateX(camera.rotation.y),
         glm.rotateY(camera.rotation.x));
