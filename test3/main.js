@@ -7,6 +7,10 @@ const camera = {
     }
 };
 
+//camera perspective
+let eye = [0,20,20];
+
+
 //scene graph nodes
 var root = null;
 var translateLight;
@@ -154,6 +158,31 @@ function lerp(a, b, n) {
     return (1 - n) * a + n * b;
 }
 
+function driveCamera(timeInMilliSeconds) {
+    let keyframe1 = 5000;
+    let keyframe2 = 7000;
+    let keyframe3 = 15000;
+
+    if(timeInMilliSeconds < keyframe1) {
+        let percent = calcProzent(timeInMilliSeconds, keyframe1);
+        eye[1] = lerp(20, 13, percent);
+        eye[2] = lerp(20, 13, percent);
+    }
+    else if(timeInMilliSeconds < keyframe2) {
+        let percent = calcProzent((timeInMilliSeconds-keyframe1), (keyframe2-keyframe1));
+        let rotX = lerp(0, 72, percent);
+        camera.rotation.x = rotX;
+        eye[1] = lerp(13, 10, percent);
+        eye[2] = lerp(13, 10, percent);
+    }
+    else if(timeInMilliSeconds < keyframe3) {
+        let percent = calcProzent((timeInMilliSeconds-keyframe2), (keyframe3-keyframe2));
+        let rotX = lerp(72, 360, percent);
+
+        camera.rotation.x = rotX;
+    }
+}
+
 function render(timeInMilliSeconds){
     checkForWindowResize(gl);
 
@@ -161,6 +190,8 @@ function render(timeInMilliSeconds){
     //rotateLight.matrix = glm.rotateY(50);
 
     //drivePlane(timeInMilliSeconds);
+
+    //driveCamera(timeInMilliSeconds);
 
     //setup viewport
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
@@ -171,7 +202,7 @@ function render(timeInMilliSeconds){
     const context = createSGContext(gl);
     context.projectionMatrix = mat4.perspective(mat4.create(), 30, gl.drawingBufferWidth / gl.drawingBufferHeight, 0.01, 200);
     //very primitive camera implementation
-    let lookAtMatrix = mat4.lookAt(mat4.create(), [0,10,10], [0,10,0], [0,-1,0]);
+    let lookAtMatrix = mat4.lookAt(mat4.create(), eye, [0,10,0], [0,-1,0]);
     let mouseRotateMatrix = mat4.multiply(mat4.create(),
         glm.rotateX(camera.rotation.y),
         glm.rotateY(camera.rotation.x));
