@@ -49,8 +49,6 @@ var cameraStartPos = [0,-10,-10];
 
 var waterHeight = 0;
 
-//Lights
-var reverseSunDirection = [0.5, 0.7, 1];
 
 
 
@@ -76,9 +74,12 @@ loadResources({
     fs_simple: 'shader/simple.fs.glsl',
     vs_texture: 'shader/texture.vs.glsl',
     fs_texture: 'shader/texture.fs.glsl',
+
     //piper_model: '../models/airplane/plane.obj',
     piper_tex: '../models/airplane/Dirty.jpg',
     //scan: '../models/kondensator_deckel.obj',
+    piper_model: '../models/airplane/plane.obj',
+    piper_tex: '../models/airplane/Dirty.jpg',
 
 // floor  texture
     texture_diffuse: '../textures/wood.png',
@@ -199,6 +200,22 @@ function createSceneGraph(gl, resources) {
 
 
     {
+        let textureNode = new TextureSGNode(Object.values(textures)[0], 0, 'u_diffuseTex',new RenderSGNode(resources.piper_model));
+
+        let piper = new MaterialSGNode( textureNode);
+        //gold
+        piper.ambient = [0.0, 0.0, 0.0, 1];
+        piper.diffuse = [0.25, 0.13, 0.1, 1];
+        piper.specular = [0.5, 0.5, 0.5, 1];
+        piper.shininess = 4.0;
+
+        piperNode = new TransformationSGNode(glm.transform({ translate: [0,7, 0], rotateX : 0, scale: 1 }),  [
+            piper
+        ]);
+        root.append(piperNode);
+    }
+
+    {
         var yachtTextureNode = new TextureSGNode(resources.texture_yacht, 0, 'u_diffuseTex', new RenderSGNode(resources.model_yacht));
         let yachtMaterialNode = new MaterialSGNode(yachtTextureNode);
 
@@ -265,9 +282,6 @@ function driveCamera(timeInMilliSeconds) {
         camera.rotation.x = rotX;
     }
 }
-
-
-
 
 function render(timeInMilliSeconds){
     checkForWindowResize(gl);
