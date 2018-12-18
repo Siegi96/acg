@@ -8,7 +8,7 @@ const camera = {
 };
 
 //camera perspective
-let eye = [0,20,20];
+let eye = [0,23,-23];
 
 
 //scene graph nodes
@@ -50,6 +50,8 @@ var cameraStartPos = [0,-10,-10];
 var waterHeight = 0;
 
 
+//Lights
+var reverseSunDirection = [0.5, 0.7, 1];
 
 
 //textures
@@ -81,8 +83,6 @@ loadResources({
     piper_model: '../models/airplane/plane.obj',
     piper_tex: '../models/airplane/Dirty.jpg',
 
-// floor  texture
-    texture_diffuse: '../textures/wood.png',
 
     // boat
     model_yacht: '../models/Yacht.obj',
@@ -177,7 +177,7 @@ function createSceneGraph(gl, resources) {
   }
 
     //create root scenegraph
-    textures = {piper: resources.piper_tex, wood: resources.texture_diffuse};
+    textures = {piper: resources.piper_tex};
     root.append(rootenv);
     root.append(waterShaderNode);
 
