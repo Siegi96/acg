@@ -8,8 +8,14 @@ const camera = {
 };
 
 //camera perspective
-let eye = [0,23,-23];
+let eye = [0,20,20];
+let center = [0,10,0];
 
+//plane perspective
+let planeX = 0;
+let planeY = 7;
+let planeZ = 0;
+let planeRotateY = 0;
 
 //scene graph nodes
 var root = null;
@@ -208,6 +214,7 @@ function createSceneGraph(gl, resources) {
         piper.diffuse = [0.25, 0.13, 0.1, 1];
         piper.specular = [0.5, 0.5, 0.5, 1];
         piper.shininess = 4.0;
+        piper.lights = [lightNode];
 
         piperNode = new TransformationSGNode(glm.transform({ translate: [0,7, 0], rotateX : 0, scale: 1 }),  [
             piper
@@ -231,56 +238,96 @@ function createSceneGraph(gl, resources) {
     return root;
 }
 
-
-
-
-
-
-
-
-
-
-
 function drivePlane(timeInMilliSeconds) {
-    let keyframe = 50000;
-    let prozent = calcProzent(timeInMilliSeconds, keyframe);
-    if(prozent >= 1) prozent = 1;
-    console.log(prozent);
-    let x = lerp(-3, 50, prozent);
-    piperNode.matrix = glm.translate(x,0,2);
+    let keyframe1 = 5000;
+    let keyframe2 = 7000;
+    let keyframe3 = 15000;
+    let keyframe4 = 20000;
+    let keyframe5 = 22000;
+    let keyframe6 = 24000;
 
+    let test = false;
+
+
+    if(test) {
+        piperNode.matrix = glm.transform({translate: [-50, planeY, 65], rotateY: -150});
+        eye[0] = -30;
+        eye[1] = 13;
+        eye[2] = 50;
+        center = [-30, planeY+3, 80];
+/*
+        if(timeInMilliSeconds > 2000) {
+            let percent = calcProzent(timeInMilliSeconds, 2000);
+            planeX = lerp(0, -30, percent);
+            planeZ = lerp(50, 80, percent);
+            planeRotateY = lerp(0, -80, percent);
+            eye[0] = planeX;
+            eye[2] = lerp(37, 50, percent);
+            console.log(eye[2]);
+        }
+
+        piperNode.matrix = glm.transform({translate: [planeX, planeY, planeZ], rotateY: planeRotateY});
+        center = [planeX, planeY + 3, planeZ];
+        */
+    }
+    else {
+        if (timeInMilliSeconds < keyframe1) {
+            let percent = calcProzent(timeInMilliSeconds, keyframe1);
+            eye[1] = lerp(23, 16, percent);
+            eye[2] = lerp(-23, -16, percent);
+        }
+        else if (timeInMilliSeconds < keyframe2) {
+            let percent = calcProzent((timeInMilliSeconds - keyframe1), (keyframe2 - keyframe1));
+            let rotX = lerp(0, 72, percent);
+            camera.rotation.x = rotX;
+            eye[1] = lerp(16, 13, percent);
+            eye[2] = lerp(-16, -13, percent);
+        }
+        else if (timeInMilliSeconds < keyframe3) {
+            let percent = calcProzent((timeInMilliSeconds - keyframe2), (keyframe3 - keyframe2));
+            let rotX = lerp(72, 360, percent);
+
+            camera.rotation.x = rotX;
+        }
+        else if (timeInMilliSeconds < keyframe4) {
+            let percent = calcProzent(timeInMilliSeconds - keyframe3, (keyframe4 - keyframe3));
+            planeZ = (percent * (lerp(0, 50, percent)));
+            eye[2] = planeZ - 13;
+        }
+        else if(timeInMilliSeconds < keyframe5) {
+            let percent = calcProzent(timeInMilliSeconds - keyframe4, (keyframe5 - keyframe4));
+            planeX = lerp(0, -30, percent);
+            planeZ = lerp(50, 80, percent);
+            planeRotateY = lerp(0, -80, percent);
+            eye[0] = planeX;
+            eye[2] = lerp(37, 45, percent);
+        }
+        else if(timeInMilliSeconds < keyframe6){
+            let percent = calcProzent(timeInMilliSeconds - keyframe5, (keyframe6 - keyframe5));
+            planeX = lerp(-30, -60, percent);
+            planeZ = lerp(80, 55, percent);
+            planeRotateY = lerp(-80, -150, percent);
+            eye[0] = lerp(-30, -40, percent);
+
+            // eye -30, y, 45
+            // center -60, y, 55
+
+
+        }
+
+        piperNode.matrix = glm.transform({translate: [planeX, planeY, planeZ], rotateY: planeRotateY});
+        center = [planeX, planeY + 3, planeZ];
+    }
 }
+
+
 
 function calcProzent(timeInMilliseconds, keyFrame){
     return timeInMilliseconds/keyFrame;
 }
 function lerp(a, b, n) {
+    //bei 30%: 70% von a, 30% von b
     return (1 - n) * a + n * b;
-}
-
-function driveCamera(timeInMilliSeconds) {
-    let keyframe1 = 5000;
-    let keyframe2 = 7000;
-    let keyframe3 = 15000;
-
-    if(timeInMilliSeconds < keyframe1) {
-        let percent = calcProzent(timeInMilliSeconds, keyframe1);
-        eye[1] = lerp(20, 13, percent);
-        eye[2] = lerp(20, 13, percent);
-    }
-    else if(timeInMilliSeconds < keyframe2) {
-        let percent = calcProzent((timeInMilliSeconds-keyframe1), (keyframe2-keyframe1));
-        let rotX = lerp(0, 72, percent);
-        camera.rotation.x = rotX;
-        eye[1] = lerp(13, 10, percent);
-        eye[2] = lerp(13, 10, percent);
-    }
-    else if(timeInMilliSeconds < keyframe3) {
-        let percent = calcProzent((timeInMilliSeconds-keyframe2), (keyframe3-keyframe2));
-        let rotX = lerp(72, 360, percent);
-
-        camera.rotation.x = rotX;
-    }
 }
 
 function render(timeInMilliSeconds){
@@ -288,13 +335,7 @@ function render(timeInMilliSeconds){
 
     RenderWaterReflectionTexture();
 
-
-    //piperNode.matrix = glm.rotateY(-1000);
-    //rotateLight.matrix = glm.rotateY(50);
-
-    //drivePlane(timeInMilliSeconds);
-
-    //driveCamera(timeInMilliSeconds);
+    drivePlane(timeInMilliSeconds);
 
     //setup viewport
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
@@ -305,7 +346,7 @@ function render(timeInMilliSeconds){
     const context = createSGContext(gl);
     context.projectionMatrix = mat4.perspective(mat4.create(), 30, gl.drawingBufferWidth / gl.drawingBufferHeight, 0.01, 200);
     //very primitive camera implementation
-    let lookAtMatrix = mat4.lookAt(mat4.create(), eye, [0,10,0], [0,-1,0]);
+    let lookAtMatrix = mat4.lookAt(mat4.create(), eye, center, [0,-1,0]);
     let mouseRotateMatrix = mat4.multiply(mat4.create(),
         glm.rotateX(camera.rotation.y),
         glm.rotateY(camera.rotation.x));
