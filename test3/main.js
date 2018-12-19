@@ -9,11 +9,11 @@ const camera = {
 
 //camera perspective
 let eye = [0,20,20];
-let center = [0,10,0];
+let center = [10,20,0];
 
 //plane perspective
 let planeX = 0;
-let planeY = 7;
+let planeY = 17;
 let planeZ = 0;
 let planeRotateY = 0;
 
@@ -22,7 +22,8 @@ var root = null;
 var translateLight;
 var rotateLight;
 var lightNode;
-var piperNode;
+var heliNode;
+var heliRotorNode;
 var translate;
 var textureNode;
 
@@ -83,12 +84,10 @@ loadResources({
     vs_texture: 'shader/texture.vs.glsl',
     fs_texture: 'shader/texture.fs.glsl',
 
-    //piper_model: '../models/airplane/plane.obj',
-    piper_tex: '../models/airplane/Dirty.jpg',
+    heli_model: '../models/heli/heli.obj',
+    heli_main_rotor: '../models/heli/main_rotor.obj',
+    heli_tex: '../models/heli/fuselage.jpg',
     //scan: '../models/kondensator_deckel.obj',
-    piper_model: '../models/airplane/plane.obj',
-    piper_tex: '../models/airplane/Dirty.jpg',
-
 
     // boat
     model_yacht: '../models/Yacht.obj',
@@ -183,7 +182,7 @@ function createSceneGraph(gl, resources) {
   }
 
     //create root scenegraph
-    textures = {piper: resources.piper_tex};
+    textures = {heli: resources.heli_tex};
     root.append(rootenv);
     root.append(waterShaderNode);
 
@@ -206,20 +205,37 @@ function createSceneGraph(gl, resources) {
 
 
     {
-        let textureNode = new TextureSGNode(Object.values(textures)[0], 0, 'u_diffuseTex',new RenderSGNode(resources.piper_model));
+        let textureNode = new TextureSGNode(Object.values(textures)[0], 0, 'u_diffuseTex',new RenderSGNode(resources.heli_model));
 
-        let piper = new MaterialSGNode( textureNode);
+        let heli = new MaterialSGNode( textureNode);
         //gold
-        piper.ambient = [0.0, 0.0, 0.0, 1];
-        piper.diffuse = [0.25, 0.13, 0.1, 1];
-        piper.specular = [0.5, 0.5, 0.5, 1];
-        piper.shininess = 4.0;
-        piper.lights = [lightNode];
+        heli.ambient = [0.0, 0.0, 0.0, 1];
+        heli.diffuse = [0.25, 0.13, 0.1, 1];
+        heli.specular = [0.5, 0.5, 0.5, 1];
+        heli.shininess = 4.0;
+        heli.lights = [lightNode];
 
-        piperNode = new TransformationSGNode(glm.transform({ translate: [0,7, 0], rotateX : 0, scale: 1 }),  [
-            piper
+        heliNode = new TransformationSGNode(glm.transform({ translate: [planeX,planeY, planeZ], rotateX : -90, scale: 1 }),  [
+            heli
         ]);
-        root.append(piperNode);
+        root.append(heliNode);
+    }
+
+    {
+        let textureNode = new TextureSGNode(Object.values(textures)[0], 0, 'u_diffuseTex',new RenderSGNode(resources.heli_main_rotor));
+
+        let heli_rotor = new MaterialSGNode( textureNode);
+        //gold
+        heli_rotor.ambient = [0.0, 0.0, 0.0, 1];
+        heli_rotor.diffuse = [0.25, 0.13, 0.1, 1];
+        heli_rotor.specular = [0.5, 0.5, 0.5, 1];
+        heli_rotor.shininess = 4.0;
+        heli_rotor.lights = [lightNode];
+
+        heliRotorNode = new TransformationSGNode(glm.transform({ translate: [planeX,planeY, planeZ], rotateX : -90, scale: 1 }),  [
+            heli_rotor
+        ]);
+        root.append(heliRotorNode);
     }
 
     {
@@ -250,7 +266,7 @@ function drivePlane(timeInMilliSeconds) {
 
 
     if(test) {
-        piperNode.matrix = glm.transform({translate: [-50, planeY, 65], rotateY: -150});
+        heliNode.matrix = glm.transform({translate: [-50, planeY, 65], rotateY: -150});
         eye[0] = -30;
         eye[1] = 13;
         eye[2] = 50;
@@ -266,7 +282,7 @@ function drivePlane(timeInMilliSeconds) {
             console.log(eye[2]);
         }
 
-        piperNode.matrix = glm.transform({translate: [planeX, planeY, planeZ], rotateY: planeRotateY});
+        heliNode.matrix = glm.transform({translate: [planeX, planeY, planeZ], rotateY: planeRotateY});
         center = [planeX, planeY + 3, planeZ];
         */
     }
@@ -315,7 +331,7 @@ function drivePlane(timeInMilliSeconds) {
 
         }
 
-        piperNode.matrix = glm.transform({translate: [planeX, planeY, planeZ], rotateY: planeRotateY});
+        heliNode.matrix = glm.transform({translate: [planeX, planeY, planeZ], rotateY: planeRotateY});
         center = [planeX, planeY + 3, planeZ];
     }
 }
@@ -333,9 +349,11 @@ function lerp(a, b, n) {
 function render(timeInMilliSeconds){
     checkForWindowResize(gl);
 
+    heliRotorNode.matrix = glm.transform({translate: [planeX,planeY, planeZ], rotateX : -90, scale: 1, rotateZ: timeInMilliSeconds*0.1});
+
     RenderWaterReflectionTexture();
 
-    drivePlane(timeInMilliSeconds);
+    //drivePlane(timeInMilliSeconds);
 
     //setup viewport
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
@@ -635,8 +653,8 @@ function RenderWaterReflectionTexture(){
 
   let distance = cameraStartPos[1] - waterHeight;
   let reversedCameraPosition = [cameraStartPos[0],cameraStartPos[1] - distance * 2,cameraStartPos[2]];//Reverse the cameraheight for correct reflection
-let lookAtMatrix = mat4.lookAt(mat4.create(), reversedCameraPosition, [0,0,0], [0,1,0]);
-let mouseRotateMatrix = mat4.multiply(mat4.create(),
+  let lookAtMatrix = mat4.lookAt(mat4.create(), reversedCameraPosition, [0,0,0], [0,1,0]);
+  let mouseRotateMatrix = mat4.multiply(mat4.create(),
                           glm.rotateX(-camera.rotation.y),//reverse cameratilt for correct reflection
                           glm.rotateY(camera.rotation.x));
 
