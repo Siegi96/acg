@@ -68,6 +68,7 @@ var reverseSunDirection = [0.5, 0.7, 1];
 //textures
 var textures;
 
+//statue
 
 //load the required resources using a utility function
 loadResources({
@@ -93,6 +94,7 @@ loadResources({
     //heli_second_rotor: '../models/heli/second_rotor.obj',
     heli_tex: '../models/heli/fuselage.jpg',
     //scan: '../models/kondensator_deckel.obj',
+    scan: '../models/hasi.obj',
 
     // boat
     model_yacht: '../models/Yacht.obj',
@@ -207,6 +209,21 @@ function createSceneGraph(gl, resources) {
         translateLight.append(lightNode);
         root.append(rotateLight);
     }
+    {
+        let scanTexture = new TextureSGNode(Object.values(textures)[0], 0, 'u_diffuseTex',new RenderSGNode(resources.scan));
+
+        let scanMaterial = new MaterialSGNode( scanTexture);
+        //gold
+        scanMaterial.ambient = [0.0, 0.0, 0.0, 1];
+        scanMaterial.diffuse = [0.25, 0.13, 0.1, 1];
+        scanMaterial.specular = [0.5, 0.5, 0.5, 1];
+        scanMaterial.shininess = 4.0;
+
+        scanNode = new TransformationSGNode(glm.transform({ translate: [0,10, 0], rotateY :0 ,rotateX : 270,  scale: 0.05 }),  [
+            scanMaterial
+        ]);
+        root.append(scanNode);
+    }
 
 
     {
@@ -242,24 +259,26 @@ function createSceneGraph(gl, resources) {
         ]);
         root.append(heliRotorNode);
     }
-/*
-    {
-        let textureNode = new TextureSGNode(Object.values(textures)[0], 0, 'u_diffuseTex',new RenderSGNode(resources.heli_second_rotor));
 
-        let heli_sec_rotor = new MaterialSGNode( textureNode);
-        //gold
-        heli_sec_rotor.ambient = [0.0, 0.0, 0.0, 1];
-        heli_sec_rotor.diffuse = [0.25, 0.13, 0.1, 1];
-        heli_sec_rotor.specular = [0.5, 0.5, 0.5, 1];
-        heli_sec_rotor.shininess = 4.0;
-        heli_sec_rotor.lights = [lightNode];
 
-        heliSecondRotorNode = new TransformationSGNode(glm.transform({ translate: [planeX,planeY, planeZ], rotateX : -90, scale: 1 }),  [
-            heli_sec_rotor
-        ]);
-        root.append(heliSecondRotorNode);
-    }
-*/
+    /*
+        {
+            let textureNode = new TextureSGNode(Object.values(textures)[0], 0, 'u_diffuseTex',new RenderSGNode(resources.heli_second_rotor));
+
+            let heli_sec_rotor = new MaterialSGNode( textureNode);
+            //gold
+            heli_sec_rotor.ambient = [0.0, 0.0, 0.0, 1];
+            heli_sec_rotor.diffuse = [0.25, 0.13, 0.1, 1];
+            heli_sec_rotor.specular = [0.5, 0.5, 0.5, 1];
+            heli_sec_rotor.shininess = 4.0;
+            heli_sec_rotor.lights = [lightNode];
+
+            heliSecondRotorNode = new TransformationSGNode(glm.transform({ translate: [planeX,planeY, planeZ], rotateX : -90, scale: 1 }),  [
+                heli_sec_rotor
+            ]);
+            root.append(heliSecondRotorNode);
+        }
+    */
     {
         var yachtTextureNode = new TextureSGNode(resources.texture_yacht, 0, 'u_diffuseTex', new RenderSGNode(resources.model_yacht));
         let yachtMaterialNode = new MaterialSGNode(yachtTextureNode);
