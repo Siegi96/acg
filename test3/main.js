@@ -9,7 +9,7 @@ const camera = {
 
 //camera perspective
 let eye = [-40,30,70];
-let center = [-40,20,40];
+let center = [-40,30,40];
 
 
 //plane perspective
@@ -104,12 +104,20 @@ loadResources({
 
 
 // cubemap images
-  env_pos_x: '../textures/mountains/px.jpg',
-  env_neg_x: '../textures/mountains/nx.jpg',
-  env_pos_y: '../textures/mountains/py.jpg',
-  env_neg_y: '../textures/mountains/ny.jpg',
-  env_pos_z: '../textures/mountains/pz.jpg',
-  env_neg_z: '../textures/mountains/nz.jpg',
+
+  env_pos_x: '../textures/sky/px.png',
+  env_neg_x: '../textures/sky/nx.png',
+  env_pos_y: '../textures/sky/py.png',
+  env_neg_y: '../textures/sky/ny.png',
+  env_pos_z: '../textures/sky/pz.png',
+  env_neg_z: '../textures/sky/nz.png',
+
+/* env_pos_x: '../textures/clouds/clouds1_east.bmp',
+  env_neg_x: '../textures/clouds/clouds1_west.bmp',
+  env_pos_y: '../textures/clouds/py.bmp',
+  env_neg_y: '../textures/clouds/ny.bmp',
+  env_pos_z: '../textures/clouds/clouds1_north.bmp',
+  env_neg_z: '../textures/clouds/clouds1_south.bmp',*/
 }).then(function (resources) { //an object containing our keys with the loaded resources/) {
     init(resources);
 
@@ -126,6 +134,7 @@ function init(resources) {
 
     // create shader programs
     singleShaderProgram = createProgram(gl, resources.vs_single, resources.fs_single);
+    skyboxShaderProgram = createProgram(gl, resources.vs_env, resources.fs_env);
     textureShaderProgram = createProgram(gl,resources.vs_texture, resources.fs_texture);
     waterShaderProgram = createProgram(gl, resources.vs_water, resources.fs_water);
 
@@ -150,46 +159,49 @@ function init(resources) {
 
 function createWater(gl, resources){
 
-  var waterNode  = new ShaderSGNode(waterShaderProgram);
-  let water = new RenderSGNode(resources.waterPlane100_100);
-  waterNode.append(new TransformationSGNode(glm.transform({ translate: [0,4,0], scale: 3}), [
-      water
-    ]));
-  return waterNode;
+  var waterShaderNode  = new ShaderSGNode(waterShaderProgram);
+  let waterRenderNode = new RenderSGNode(resources.waterPlane100_100);
+  waterShaderNode.append(new TransformationSGNode(glm.transform({ translate: [0,0,0], scale: 3}), [waterRenderNode]));
+  return waterShaderNode;
 }
+
 
 function createSceneGraph(gl, resources) {
 
+  // create root node
+  const root = new ShaderSGNode(textureShaderProgram);
+
+  // create water node
+
   waterScene = createWater(gl,resources);
 
-
-
-  const root = new ShaderSGNode(createProgram(gl,resources.vs_texture, resources.fs_texture));
-
-
-  //create scenegraph
-  const rootenv = new ShaderSGNode(createProgram(gl, resources.vs_env, resources.fs_env));
-
-  waterShaderNode = new ShaderSGNode(createProgram(gl, resources.vs_water, resources.fs_water));
- {
-
-   let waterRenderNode = new RenderSGNode(resources.waterPlane100_100);
-  waterShaderNode.append(new TransformationSGNode(glm.transform({ translate: [0,0,0], rotateZ: -180, scale: 3}), [
-        waterRenderNode
-      ]));
+  {
+    let waterShaderNode = new ShaderSGNode(waterShaderProgram);
+    let waterRenderNode = new RenderSGNode(resources.waterPlane100_100);
+    let waterTransformationNode = new TransformationSGNode(glm.transform({ translate: [0,0,0], rotateZ: -180, scale: 3}), [waterRenderNode])
+    waterShaderNode.append(waterTransformationNode);
+    root.append(waterShaderNode);
   }
+
+  // create skybox node
 
   {
-    //add skybox by putting large sphere around us
-    worldEnvNode = new EnvironmentSGNode(envcubetexture,4,false,false,false,
-                    new RenderSGNode(makeSphere(100)));
-    rootenv.append(worldEnvNode);
+    let skyboxShaderNode = new ShaderSGNode(skyboxShaderProgram);
+    let skyboxEnvironmentNode = new EnvironmentSGNode(envcubetexture,4,false,false,false, new RenderSGNode(makeSphere(100)));
+    skyboxShaderNode.append(skyboxEnvironmentNode);
+    root.append(skyboxShaderNode);
   }
+
+
+
+
+
+
+
+
 
     //create root scenegraph
     textures = {heli: resources.heli_tex};
-    root.append(rootenv);
-    root.append(waterShaderNode);
 
     {
         //initialize light
@@ -434,7 +446,7 @@ function render(timeInMilliSeconds){
 
     RenderWaterReflectionTexture();
 
-    drivePlane2(timeInMilliSeconds);
+  //  drivePlane2(timeInMilliSeconds);
 
     //setup viewport
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
