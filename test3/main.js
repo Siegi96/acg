@@ -9,8 +9,7 @@ const camera = {
 
 //camera perspective
 let eye = [-40,30,70];
-let center = [-40,20,40];
-
+let center = [-40,25,40];
 
 //plane perspective
 let planeX = -40;
@@ -19,6 +18,10 @@ let planeZ = 65;
 let planeRotateY = 0;
 
 let helisize = 0.3;
+
+//for dev
+//let eye = [0, 30, 70];
+//let center = [0, 20, 0];
 
 //scene graph nodes
 var root = null;
@@ -95,6 +98,7 @@ loadResources({
     heli_tex: '../models/heli/fuselage.jpg',
     //scan: '../models/kondensator_deckel.obj',
     scan: '../models/hasi.obj',
+    scan_tex: '../textures/boat_texture.jpg',
 
     // boat
     model_yacht: '../models/Yacht.obj',
@@ -189,7 +193,7 @@ function createSceneGraph(gl, resources) {
   }
 
     //create root scenegraph
-    textures = {heli: resources.heli_tex};
+    textures = {heli: resources.heli_tex, marmor: resources.scan_tex};
     root.append(rootenv);
     root.append(waterShaderNode);
 
@@ -210,7 +214,7 @@ function createSceneGraph(gl, resources) {
         root.append(rotateLight);
     }
     {
-        let scanTexture = new TextureSGNode(Object.values(textures)[0], 0, 'u_diffuseTex',new RenderSGNode(resources.scan));
+        let scanTexture = new TextureSGNode(textures.marmor, 0, 'u_diffuseTex',new RenderSGNode(resources.scan));
 
         let scanMaterial = new MaterialSGNode( scanTexture);
         //gold
@@ -219,7 +223,7 @@ function createSceneGraph(gl, resources) {
         scanMaterial.specular = [0.5, 0.5, 0.5, 1];
         scanMaterial.shininess = 4.0;
 
-        scanNode = new TransformationSGNode(glm.transform({ translate: [0,10, 0], rotateY :0 ,rotateX : 270,  scale: 0.05 }),  [
+        scanNode = new TransformationSGNode(glm.transform({ translate: [-20,16,-10], rotateY: 2 ,rotateX : 265, rotateZ: 180, scale: 0.05 }),  [
             scanMaterial
         ]);
         root.append(scanNode);
@@ -448,12 +452,12 @@ function lerp(a, b, n) {
 function render(timeInMilliSeconds){
     checkForWindowResize(gl);
 
-    heliRotorNode.matrix = glm.transform({translate: [planeX,planeY, planeZ], rotateX : -90, scale: 1, rotateZ: timeInMilliSeconds*0.6, scale: helisize});
+    heliRotorNode.matrix = glm.transform({translate: [planeX,planeY, planeZ], rotateX : -90, scale: 1, rotateZ: timeInMilliSeconds*timeInMilliSeconds, scale: helisize});
    // heliSecondRotorNode.matrix = glm.transform({translate: [planeX,planeY, planeZ], rotateX : -90, scale: 1});
 
     RenderWaterReflectionTexture();
 
-    drivePlane2(timeInMilliSeconds);
+    //drivePlane2(timeInMilliSeconds);
 
     //setup viewport
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
@@ -479,8 +483,6 @@ function render(timeInMilliSeconds){
     context.invViewMatrix = mat4.invert(mat4.create(), context.viewMatrix);
 
     RenderWaterRefractionTexture(context);
-
-    //gl.bindFramebuffer(gl.FRAMEBUFFER, bloomFrameBuffer);
 
     gl.useProgram(singleShaderProgram);
     gl.uniform1i( gl.getUniformLocation(singleShaderProgram, "u_diffuseTexEnabled"), 0);
