@@ -8,20 +8,17 @@ const camera = {
 };
 
 //camera perspective
-let eye = [-40,30,70];
-let center = [-40,25,40];
+let eye = [-60,23.5,87];
+let center = [-60,18,80];
 
 //plane perspective
-let planeX = -40;
+let planeX = -60;
 let planeY = 18;
-let planeZ = 65;
+let planeZ = 80;
 let planeRotateY = 0;
 
-let helisize = 0.3;
+let helisize = 0.1;
 
-//for dev
-//let eye = [0, 30, 70];
-//let center = [0, 20, 0];
 
 //scene graph nodes
 var root = null;
@@ -39,6 +36,7 @@ var textureNode;
 var singleShaderProgram;
 var textureShaderProgram;
 var waterShaderProgram;
+var skyboxShaderProgram;
 
 // water
 var waterScene;
@@ -57,7 +55,7 @@ var heightTexture;
 
 // settings
 var canvasWidth = 1200;
-var canvasHeight = 1080;
+var canvasHeight = 675;
 
 var cameraStartPos = [0,-10,-10];
 
@@ -94,11 +92,16 @@ loadResources({
 
     heli_model: '../models/heli/heli.obj',
     heli_main_rotor: '../models/heli/main_rotor.obj',
-    //heli_second_rotor: '../models/heli/second_rotor.obj',
     heli_tex: '../models/heli/fuselage.jpg',
-    //scan: '../models/kondensator_deckel.obj',
+
     scan: '../models/hasi.obj',
     scan_tex: '../textures/boat_texture.jpg',
+
+    scan2: '../models/hasi.obj',
+    scan2_tex: '../textures/boat_texture.jpg',
+
+    scan3: '../models/hasi.obj',
+    scan3_tex: '../textures/boat_texture.jpg',
 
     // boat
     model_yacht: '../models/Yacht.obj',
@@ -110,20 +113,13 @@ loadResources({
 
 
 // cubemap images
+  env_pos_x: '../textures/mountains/px.jpg',
+  env_neg_x: '../textures/mountains/nx.jpg',
+  env_pos_y: '../textures/mountains/py.jpg',
+  env_neg_y: '../textures/mountains/ny.jpg',
+  env_pos_z: '../textures/mountains/pz.jpg',
+  env_neg_z: '../textures/mountains/nz.jpg',
 
-  env_pos_x: '../textures/sky/px.png',
-  env_neg_x: '../textures/sky/nx.png',
-  env_pos_y: '../textures/sky/py.png',
-  env_neg_y: '../textures/sky/ny.png',
-  env_pos_z: '../textures/sky/pz.png',
-  env_neg_z: '../textures/sky/nz.png',
-
-/* env_pos_x: '../textures/clouds/clouds1_east.bmp',
-  env_neg_x: '../textures/clouds/clouds1_west.bmp',
-  env_pos_y: '../textures/clouds/py.bmp',
-  env_neg_y: '../textures/clouds/ny.bmp',
-  env_pos_z: '../textures/clouds/clouds1_north.bmp',
-  env_neg_z: '../textures/clouds/clouds1_south.bmp',*/
 }).then(function (resources) { //an object containing our keys with the loaded resources/) {
     init(resources);
 
@@ -167,10 +163,9 @@ function createWater(gl, resources){
 
   var waterShaderNode  = new ShaderSGNode(waterShaderProgram);
   let waterRenderNode = new RenderSGNode(resources.waterPlane100_100);
-  waterShaderNode.append(new TransformationSGNode(glm.transform({ translate: [0,0,0], scale: 3}), [waterRenderNode]));
+  waterShaderNode.append(new TransformationSGNode(glm.transform({ translate: [0,0,0], scale: 1.5}), [waterRenderNode]));
   return waterShaderNode;
 }
-
 
 function createSceneGraph(gl, resources) {
 
@@ -184,7 +179,7 @@ function createSceneGraph(gl, resources) {
   {
     let waterShaderNode = new ShaderSGNode(waterShaderProgram);
     let waterRenderNode = new RenderSGNode(resources.waterPlane100_100);
-    let waterTransformationNode = new TransformationSGNode(glm.transform({ translate: [0,0,0], rotateZ: -180, scale: 3}), [waterRenderNode])
+    let waterTransformationNode = new TransformationSGNode(glm.transform({ translate: [0,0,0], rotateZ: -180, scale: 1.5}), [waterRenderNode])
     waterShaderNode.append(waterTransformationNode);
     root.append(waterShaderNode);
   }
@@ -193,17 +188,10 @@ function createSceneGraph(gl, resources) {
 
   {
     let skyboxShaderNode = new ShaderSGNode(skyboxShaderProgram);
-    let skyboxEnvironmentNode = new EnvironmentSGNode(envcubetexture,4,false,false,false, new RenderSGNode(makeSphere(100)));
+    let skyboxEnvironmentNode = new EnvironmentSGNode(envcubetexture,4,false,false,false, new RenderSGNode(makeSphere(120)));
     skyboxShaderNode.append(skyboxEnvironmentNode);
     root.append(skyboxShaderNode);
   }
-
-
-
-
-
-
-
 
 
     //create root scenegraph
@@ -220,13 +208,13 @@ function createSceneGraph(gl, resources) {
         lightNode.position = [0, 0, 0];
 
         rotateLight = new TransformationSGNode(mat4.create());
-        //translateLight = new TransformationSGNode(glm.translate(3,5,0)); //translating the light is the same as setting the light position
         translateLight = new TransformationSGNode(glm.translate(-300,500,400)); //translating the light is the same as setting the light position
 
         rotateLight.append(translateLight);
         translateLight.append(lightNode);
         root.append(rotateLight);
     }
+
     {
         let scanTexture = new TextureSGNode(textures.marmor, 0, 'u_diffuseTex',new RenderSGNode(resources.scan));
 
@@ -237,7 +225,39 @@ function createSceneGraph(gl, resources) {
         scanMaterial.specular = [0.5, 0.5, 0.5, 1];
         scanMaterial.shininess = 4.0;
 
-        scanNode = new TransformationSGNode(glm.transform({ translate: [-20,16,-10], rotateY: 2 ,rotateX : 265, rotateZ: 180, scale: 0.05 }),  [
+        let scanNode = new TransformationSGNode(glm.transform({ translate: [58,11,60], rotateY: 5, rotateX : 272, rotateZ: 90, scale: 0.05 }),  [
+            scanMaterial
+        ]);
+        root.append(scanNode);
+    }
+
+    {
+        let scanTexture = new TextureSGNode(textures.marmor, 0, 'u_diffuseTex',new RenderSGNode(resources.scan2));
+
+        let scanMaterial = new MaterialSGNode( scanTexture);
+        //gold
+        scanMaterial.ambient = [0.0, 0.0, 0.0, 1];
+        scanMaterial.diffuse = [0.25, 0.13, 0.1, 1];
+        scanMaterial.specular = [0.5, 0.5, 0.5, 1];
+        scanMaterial.shininess = 4.0;
+
+        let scanNode = new TransformationSGNode(glm.transform({ translate: [73,11,10], rotateY: 5 ,rotateX : 272, rotateZ: 90, scale: 0.05 }),  [
+            scanMaterial
+        ]);
+        root.append(scanNode);
+    }
+
+    {
+        let scanTexture = new TextureSGNode(textures.marmor, 0, 'u_diffuseTex',new RenderSGNode(resources.scan3));
+
+        let scanMaterial = new MaterialSGNode( scanTexture);
+        //gold
+        scanMaterial.ambient = [0.0, 0.0, 0.0, 1];
+        scanMaterial.diffuse = [0.25, 0.13, 0.1, 1];
+        scanMaterial.specular = [0.5, 0.5, 0.5, 1];
+        scanMaterial.shininess = 4.0;
+
+        let scanNode = new TransformationSGNode(glm.transform({ translate: [65,11,35], rotateY: 5, rotateX : 272, rotateZ: 90, scale: 0.05 }),  [
             scanMaterial
         ]);
         root.append(scanNode);
@@ -253,7 +273,6 @@ function createSceneGraph(gl, resources) {
         heli.diffuse = [0.25, 0.13, 0.1, 1];
         heli.specular = [0.5, 0.5, 0.5, 1];
         heli.shininess = 4.0;
-        heli.lights = [lightNode];
 
         heliNode = new TransformationSGNode(glm.transform({ translate: [planeX,planeY, planeZ], rotateX : -90, scale: helisize }),  [
             heli
@@ -270,7 +289,6 @@ function createSceneGraph(gl, resources) {
         heli_rotor.diffuse = [0.25, 0.13, 0.1, 1];
         heli_rotor.specular = [0.5, 0.5, 0.5, 1];
         heli_rotor.shininess = 4.0;
-        heli_rotor.lights = [lightNode];
 
         heliRotorNode = new TransformationSGNode(glm.transform({ translate: [planeX,planeY, planeZ], rotateX : -90, scale: helisize }),  [
             heli_rotor
@@ -278,25 +296,6 @@ function createSceneGraph(gl, resources) {
         root.append(heliRotorNode);
     }
 
-
-    /*
-        {
-            let textureNode = new TextureSGNode(Object.values(textures)[0], 0, 'u_diffuseTex',new RenderSGNode(resources.heli_second_rotor));
-
-            let heli_sec_rotor = new MaterialSGNode( textureNode);
-            //gold
-            heli_sec_rotor.ambient = [0.0, 0.0, 0.0, 1];
-            heli_sec_rotor.diffuse = [0.25, 0.13, 0.1, 1];
-            heli_sec_rotor.specular = [0.5, 0.5, 0.5, 1];
-            heli_sec_rotor.shininess = 4.0;
-            heli_sec_rotor.lights = [lightNode];
-
-            heliSecondRotorNode = new TransformationSGNode(glm.transform({ translate: [planeX,planeY, planeZ], rotateX : -90, scale: 1 }),  [
-                heli_sec_rotor
-            ]);
-            root.append(heliSecondRotorNode);
-        }
-    */
     {
         var yachtTextureNode = new TextureSGNode(resources.texture_yacht, 0, 'u_diffuseTex', new RenderSGNode(resources.model_yacht));
         let yachtMaterialNode = new MaterialSGNode(yachtTextureNode);
@@ -306,172 +305,19 @@ function createSceneGraph(gl, resources) {
         yachtMaterialNode.specular = [0.5, 0.5, 0.5, 1];
         yachtMaterialNode.shininess = 4.0;
 
-        var yachtTransformationNode = new TransformationSGNode(glm.transform({ translate: [0,6, 0], scale: 0.1 }),  [yachtMaterialNode]);
+        var yachtTransformationNode = new TransformationSGNode(glm.transform({ translate: [0,2, 0], scale: 0.1 }),  [yachtMaterialNode]);
         root.append(yachtTransformationNode);
       }
 
     return root;
 }
 
-function drivePlane(timeInMilliSeconds) {
-    let keyframe1 = 5000;
-    let keyframe2 = 7000;
-    let keyframe3 = 15000;
-    let keyframe4 = 20000;
-    let keyframe5 = 21500;
-    let keyframe6 = 22500;
-    let keyframe7 = 24000;
-    let keyframe8 = 26000;
-    let keyframe9 = 30000;
-
-    if (timeInMilliSeconds < keyframe1) {
-        let percent = calcProzent(timeInMilliSeconds, keyframe1);
-        eye[1] = lerp(30, 23, percent);
-        eye[2] = lerp(30, 23, percent);
-    }
-    else if (timeInMilliSeconds < keyframe2) {
-        let percent = calcProzent((timeInMilliSeconds - keyframe1), (keyframe2 - keyframe1));
-        let rotX = lerp(0, 72, percent);
-        camera.rotation.x = rotX;
-        eye[1] = lerp(23, 20, percent);
-        eye[2] = lerp(23, 20, percent);
-    }
-    else if (timeInMilliSeconds < keyframe3) {
-        let percent = calcProzent((timeInMilliSeconds - keyframe2), (keyframe3 - keyframe2));
-        let rotX = lerp(72, 360, percent);
-
-        camera.rotation.x = rotX;
-    }
-    else if (timeInMilliSeconds < keyframe4) {
-        let percent = calcProzent(timeInMilliSeconds - keyframe3, (keyframe4 - keyframe3));
-        planeZ = (percent*(lerp(0, -30, percent)));
-        eye[2] = planeZ + 20;
-    }
-    else if(timeInMilliSeconds < keyframe5) {
-        let percent = calcProzent(timeInMilliSeconds - keyframe4, (keyframe5 - keyframe4));
-        planeX = lerp(0, 15, percent);
-        planeZ = lerp(-30, -60, percent);
-        planeRotateY = lerp(0, -70, percent);
-        eye[0] = planeX;
-        eye[2] = lerp(-10, -18, percent);
-    }
-    else if(timeInMilliSeconds < keyframe6) {
-        let percent = calcProzent(timeInMilliSeconds - keyframe5, (keyframe6 - keyframe5));
-        planeX = lerp(15, 25, percent);
-        planeRotateY = lerp(-70, -90, percent);
-        eye[0] = planeX;
-    }
-    else if(timeInMilliSeconds < keyframe7){
-        let percent = calcProzent(timeInMilliSeconds - keyframe6, (keyframe7 - keyframe6));
-        planeX = lerp(25, 40, percent);
-        planeZ = lerp(-60, -40, percent);
-        planeRotateY = lerp(-90, -150, percent);
-        eye[0] = lerp(25, 40, percent);
-    }
-    else if(timeInMilliSeconds < keyframe8) {
-        let percent = calcProzent(timeInMilliSeconds - keyframe7, (keyframe8 - keyframe7));
-        planeZ = lerp(-40, -5, percent);
-        planeRotateY = lerp(-150, -180, percent);
-        eye[0] = lerp(40, 20, percent);
-        eye[2] = lerp(-18, -5, percent);
-    }
-    else if(timeInMilliSeconds < keyframe9) {
-        let percent = calcProzent(timeInMilliSeconds - keyframe8, (keyframe9 - keyframe8));
-        planeZ = lerp(-5, 65, percent);
-        eye[2] = planeZ;
-    }
-
-
-    heliNode.matrix = glm.transform({translate: [planeX, planeY, planeZ], rotateX : -90, rotateZ: planeRotateY});
-    center = [planeX, 20, planeZ];
-}
-
-function drivePlane2(timeInMilliSeconds) {
-    let keyframe1 = 5000;
-    let keyframe2 = 10000;
-    let keyframe3 = 13000;
-    let keyframe4 = 16000;
-    let keyframe5 = 19000;
-    let keyframe6 = 21000;
-    let keyframe7 = 23000;
-
-    if (timeInMilliSeconds < keyframe1) {
-        let percent = calcProzent(timeInMilliSeconds, keyframe1);
-        eye[1] = lerp(30, 20, percent);
-        eye[2] = lerp(70, 50, percent);
-        planeZ = lerp(65, 40, percent);
-    }
-    else if (timeInMilliSeconds < keyframe2) {
-        let percent = calcProzent(timeInMilliSeconds - keyframe1, (keyframe2 - keyframe1));
-        planeZ = (lerp(40, 0, percent));
-        eye[2] = planeZ + 10;
-    }
-    else if(timeInMilliSeconds < keyframe3) {
-        let percent = calcProzent(timeInMilliSeconds - keyframe2, (keyframe3 - keyframe2));
-        planeX = lerp(-40, -30, percent);
-        planeZ = lerp(0, -20, percent);
-        planeRotateY = lerp(0, -50, percent);
-        eye[0] = planeX;
-        eye[2] = lerp(10, -5, percent);
-    }
-    else if(timeInMilliSeconds < keyframe4) {
-        let percent = calcProzent(timeInMilliSeconds - keyframe3, (keyframe4 - keyframe3));
-        planeX = lerp(-30, -10, percent);
-        planeZ = lerp(-20, -35, percent);
-        planeRotateY = lerp(-50, -100, percent);
-        eye[0] = planeX;
-        eye[2] = lerp(-5, -20, percent);
-    }
-    else if(timeInMilliSeconds < keyframe5){
-        let percent = calcProzent(timeInMilliSeconds - keyframe4, (keyframe5 - keyframe4));
-        planeX = lerp(-10, 15, percent);
-        planeZ = lerp(-35, -25, percent);
-        planeRotateY = lerp(-100, -135, percent);
-        eye[0] = lerp(-10, 10, percent);
-        eye[2] = lerp(-20, -25, percent);
-    }
-    else if(timeInMilliSeconds < keyframe6) {
-        let percent = calcProzent(timeInMilliSeconds - keyframe5, (keyframe6 - keyframe5));
-        planeX = lerp(15, 25, percent);
-        planeZ = lerp(-25, -10, percent);
-        planeRotateY = lerp(-135, -180, percent);
-        eye[0] = lerp(10, 20, percent);
-        eye[2] = lerp(-25, -15, percent);
-        console.log("key6");
-    }
-    else if(timeInMilliSeconds < keyframe7) {
-        let percent = calcProzent(timeInMilliSeconds - keyframe6, (keyframe7 - keyframe6));
-        planeX = lerp(25, 15, percent);
-        planeZ = lerp(-10, 0, percent);
-        planeRotateY = lerp(-180, -225, percent);
-        eye[0] = lerp(20, 10, percent);
-        eye[2] = lerp(-15, -10, percent);
-    }
-
-
-    heliNode.matrix = glm.transform({translate: [planeX, planeY, planeZ], rotateX : -90, rotateZ: planeRotateY, scale: helisize});
-    center = [planeX, 20, planeZ];
-
-}
-
-
-function calcProzent(timeInMilliseconds, keyFrame){
-    return timeInMilliseconds/keyFrame;
-}
-function lerp(a, b, n) {
-    //bei 30%: 70% von a, 30% von b
-    return (1 - n) * a + n * b;
-}
-
 function render(timeInMilliSeconds){
     checkForWindowResize(gl);
 
-    heliRotorNode.matrix = glm.transform({translate: [planeX,planeY, planeZ], rotateX : -90, scale: 1, rotateZ: timeInMilliSeconds*timeInMilliSeconds, scale: helisize});
-   // heliSecondRotorNode.matrix = glm.transform({translate: [planeX,planeY, planeZ], rotateX : -90, scale: 1});
-
     RenderWaterReflectionTexture();
 
-    //drivePlane2(timeInMilliSeconds);
+    drivePlane(timeInMilliSeconds);
 
     //setup viewport
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
@@ -848,3 +694,284 @@ function unbindWaterTextures(){
   gl.activeTexture(gl.TEXTURE0+3);
   gl.bindTexture(gl.TEXTURE_2D, null);
 }
+
+
+function drivePlane(timeInMilliSeconds) {
+    let buffer = 10000;
+    let keyframe1 = 15000;
+    let keyframe2 = 18500;
+    let keyframe3 = 20000;
+    let keyframe4 = 29000;
+    let keyframe5 = 32000; //first turn
+    let keyframe6 = 35000;
+    let keyframe7 = 36000;
+    let keyframe8 = 45000;
+    let keyframe9 = 48000; //second turn
+    let keyframe10 = 51000;
+    let keyframe11 = 52000;
+    let keyframe12 = 61000;
+    let keyframe13 = 64000; //third turn
+    let keyframe14 = 67000;
+    let keyframe15 = 68000;
+    let keyframe16 = 77000;
+    let keyframe17 = 81000; //fourth turn
+    let keyframe18 = 86000;
+    let keyframe19 = 87000;
+    let keyframe20 = 91500;
+    let keyframe21 = 95000; //fifth (half) turn
+    let keyframe22 = 106000;
+    let keyframe23 = 109000;
+    let keyframe24 = 114000;
+    let keyframe25 = 119000;
+    let keyframe26 = 127000;
+    let keyframe27 = 133000;
+    let keyframe28 = 137000;
+    let keyframe29 = 143000;
+    let keyframe30 = 150000;
+
+    if(timeInMilliSeconds > buffer) {
+        if (timeInMilliSeconds < keyframe1) {
+            let percent = calcProzent(timeInMilliSeconds - buffer, keyframe1 - buffer);
+            eye[1] = lerp(23.5, 18.5, percent);
+            eye[2] = lerp(87, 77, percent);
+            planeZ = lerp(80, 75, percent);
+            center = [planeX, planeY, planeZ];
+        }
+        else if (timeInMilliSeconds < keyframe2) {
+            let percent = calcProzent(timeInMilliSeconds - keyframe1, (keyframe2 - keyframe1));
+            planeZ = (lerp(75, 64.5, percent));
+            eye[2] = planeZ + 2;
+            center = [planeX, planeY, planeZ];
+        }
+        else if (timeInMilliSeconds < keyframe3) {
+            let percent = calcProzent(timeInMilliSeconds - keyframe2, (keyframe3 - keyframe2));
+            planeZ = (lerp(64.5, 60, percent));
+            planeRotateY = lerp(0, -5, percent);
+            eye[2] = planeZ + 2;
+            center = [planeX, planeY, planeZ];
+        }
+        else if (timeInMilliSeconds < keyframe4) {
+            let percent = calcProzent(timeInMilliSeconds - keyframe3, (keyframe4 - keyframe3));
+            planeX = lerp(-60, -31, percent);
+            planeZ = lerp(60, 31, percent);
+            planeRotateY = lerp(-5, -75, percent);
+            eye[0] = lerp(-60, -31, percent);
+            eye[2] = lerp(62, 35, percent);
+            center = [planeX, planeY, planeZ];
+        }
+        else if (timeInMilliSeconds < keyframe5) {
+            let percent = calcProzent(timeInMilliSeconds - keyframe4, (keyframe5 - keyframe4));
+            planeX = lerp(-31, -25, percent);
+            planeZ = lerp(31, 25, percent);
+            planeRotateY = lerp(-75, -90, percent);
+            eye[0] = lerp(-31, -27, percent);
+            eye[2] = lerp(35, 25, percent);
+            center = [planeX, planeY, planeZ];
+        }
+        else if (timeInMilliSeconds < keyframe6) {
+            let percent = calcProzent(timeInMilliSeconds - keyframe5, (keyframe6 - keyframe5));
+            planeX = lerp(-25, -13.5, percent);
+            eye[0] = planeX-2;
+            center = [planeX, planeY, planeZ];
+        }
+        else if (timeInMilliSeconds < keyframe7) {
+            let percent = calcProzent(timeInMilliSeconds - keyframe6, (keyframe7 - keyframe6));
+            planeX = lerp(-13.5, -10, percent);
+            planeRotateY = lerp(-90, -85, percent);
+            eye[0] = planeX-2;
+            center = [planeX, planeY, planeZ];
+        }
+        else if (timeInMilliSeconds < keyframe8) {
+            let percent = calcProzent(timeInMilliSeconds - keyframe7, (keyframe8 - keyframe7));
+            planeX = lerp(-10, 19, percent);
+            planeZ = lerp(25, -4, percent);
+            planeRotateY = lerp(-85, -15, percent);
+            eye[0] = lerp(-12, 15, percent);
+            eye[2] = lerp(25, -4, percent);
+            center = [planeX, planeY, planeZ];
+        }
+        else if (timeInMilliSeconds < keyframe9) {
+            let percent = calcProzent(timeInMilliSeconds - keyframe8, (keyframe9 - keyframe8));
+            planeX = lerp(19, 25, percent);
+            planeZ = lerp(-4, -10, percent);
+            planeRotateY = lerp(-15, 0, percent);
+            eye[0] = lerp(15, 25, percent);
+            eye[2] = lerp(-4, -8, percent);
+            center = [planeX, planeY, planeZ];
+        }
+        else if (timeInMilliSeconds < keyframe10) {
+            let percent = calcProzent(timeInMilliSeconds - keyframe9, (keyframe10 - keyframe9));
+            planeZ = lerp(-10, -21.5, percent);
+            eye[2] = planeZ+2;
+            center = [planeX, planeY, planeZ];
+        }
+        else if (timeInMilliSeconds < keyframe11) {
+            let percent = calcProzent(timeInMilliSeconds - keyframe10, (keyframe11 - keyframe10));
+            planeZ = lerp(-21.5, -25, percent);
+            planeRotateY = lerp(0, 5, percent);
+            eye[2] = planeZ+2;
+            center = [planeX, planeY, planeZ];
+        }
+        else if (timeInMilliSeconds < keyframe12) {
+            let percent = calcProzent(timeInMilliSeconds - keyframe11, (keyframe12 - keyframe11));
+            planeX = lerp(25, -4, percent);
+            planeZ = lerp(-25, -54, percent);
+            planeRotateY = lerp(5, 75, percent);
+            eye[0] = lerp(25, -4, percent);
+            eye[2] = lerp(-23, -50, percent);
+            center = [planeX, planeY, planeZ];
+        }
+        else if (timeInMilliSeconds < keyframe13) {
+            let percent = calcProzent(timeInMilliSeconds - keyframe12, (keyframe13 - keyframe12));
+            planeX = lerp(-4, -10, percent);
+            planeZ = lerp(-54, -60, percent);
+            planeRotateY = lerp(75, 90, percent);
+            eye[0] = lerp(-4, -8, percent);
+            eye[2] = lerp(-50, -60, percent);
+            center = [planeX, planeY, planeZ];
+        }
+        else if (timeInMilliSeconds < keyframe14) {
+            let percent = calcProzent(timeInMilliSeconds - keyframe13, (keyframe14 - keyframe13));
+            planeX = lerp(-10, -21.5, percent);
+            eye[0] = planeX+2;
+            center = [planeX, planeY, planeZ];
+        }
+        else if (timeInMilliSeconds < keyframe15) {
+            let percent = calcProzent(timeInMilliSeconds - keyframe14, (keyframe15 - keyframe14));
+            planeX = lerp(-21.5, -25, percent);
+            planeRotateY = lerp(90, 95, percent);
+            eye[0] = planeX+2;
+            center = [planeX, planeY, planeZ];
+        }
+        else if (timeInMilliSeconds < keyframe16) {
+            let percent = calcProzent(timeInMilliSeconds - keyframe15, (keyframe16 - keyframe15));
+            planeX = lerp(-25, -54, percent);
+            planeZ = lerp(-60, -31, percent);
+            planeRotateY = lerp(95, 165, percent);
+            eye[0] = lerp(-23, -50, percent);
+            eye[2] = lerp(-60, -31, percent);
+            center = [planeX, planeY, planeZ];
+        }
+        else if (timeInMilliSeconds < keyframe17) {
+            let percent = calcProzent(timeInMilliSeconds - keyframe16, (keyframe17 - keyframe16));
+            planeX = lerp(-54, -60, percent);
+            planeZ = lerp(-31, -25, percent);
+            planeRotateY = lerp(165, 180, percent);
+            eye[0] = lerp(-50, -60, percent);
+            eye[2] = lerp(-31, -27, percent);
+            center = [planeX, planeY, planeZ];
+        }
+        else if (timeInMilliSeconds < keyframe18) {
+            let percent = calcProzent(timeInMilliSeconds - keyframe17, (keyframe18 - keyframe17));
+            planeZ = lerp(-25, 2.5, percent);
+            eye[2] = planeZ-2;
+            center = [planeX, planeY, planeZ];
+        }
+        else if (timeInMilliSeconds < keyframe19) {
+            let percent = calcProzent(timeInMilliSeconds - keyframe18, (keyframe19 - keyframe18));
+            planeZ = lerp(2.5, 6, percent);
+            planeRotateY = lerp(180, 185, percent);
+            eye[2] = planeZ-2;
+            center = [planeX, planeY, planeZ];
+        }
+        else if (timeInMilliSeconds < keyframe20) {
+            let percent = calcProzent(timeInMilliSeconds - keyframe19, (keyframe20 - keyframe19));
+            planeX = lerp(-60, -47, percent);
+            planeZ = lerp(6, 19, percent);
+            planeRotateY = lerp(185, 215, percent);
+            eye[0] = lerp(-60, -47, percent);
+            eye[2] = lerp(4, 15, percent);
+            center = [planeX, planeY, planeZ];
+        }
+        else if (timeInMilliSeconds < keyframe21) {
+            let percent = calcProzent(timeInMilliSeconds - keyframe20, (keyframe21-keyframe20));
+            planeX = lerp(-47, -43, percent);
+            planeZ = lerp(19, 23, percent);
+            planeRotateY = lerp(215, 225, percent);
+            eye[0] = lerp(-47, -44, percent);
+            eye[2] = lerp(15, 22, percent);
+            center = [planeX, planeY, planeZ];
+        }
+        else if (timeInMilliSeconds < keyframe22) {
+            let percent = calcProzent(timeInMilliSeconds - keyframe21, (keyframe22 - keyframe21));
+            planeX = lerp(-43, -14, percent);
+            planeZ = lerp(23, 52, percent);
+            eye[0] = lerp(-44, -15, percent);
+            eye[2] = lerp(22, 51, percent);
+            center = [planeX, planeY, planeZ];
+        }
+        else if (timeInMilliSeconds < keyframe23) {
+            let percent = calcProzent(timeInMilliSeconds - keyframe22, (keyframe23 - keyframe22));
+            planeX = lerp(-14, -6, percent);
+            planeZ = lerp(52, 60, percent);
+            eye[0] = lerp(-15, -5, percent);
+            eye[2] = lerp(51, 52, percent);
+            let centerX = lerp(-14, 2, percent);
+            let centerZ = lerp(52, 54, percent);
+            center = [centerX, planeY, centerZ];
+        }
+        else if (timeInMilliSeconds < keyframe24) {
+            let percent = calcProzent(timeInMilliSeconds - keyframe23, (keyframe24 - keyframe23));
+            planeX = lerp(-6, 14, percent);
+            planeZ = lerp(60, 80, percent);
+            eye[0] = lerp(-5, 12, percent);
+            eye[2] = lerp(52, 54.5, percent);
+            let centerX = lerp(2, 30, percent);
+            let centerZ = lerp(54, 57, percent);
+            center = [centerX, planeY, centerZ];
+        }
+        else if (timeInMilliSeconds < keyframe25) {
+            let percent = calcProzent(timeInMilliSeconds - keyframe24, (keyframe25 - keyframe24));
+            planeX = lerp(20, 40, percent);
+            planeZ = lerp(80, 120, percent);
+            eye[0] = lerp(12, 29, percent);
+            eye[2] = lerp(54.5, 57, percent);
+            let centerX = lerp(30, 58, percent);
+            let centerZ = lerp(57, 60, percent);
+            let centerY = lerp(18, 11, percent);
+            center = [centerX, centerY, centerZ];
+        }
+        else if (timeInMilliSeconds < keyframe26) {
+            let percent = calcProzent(timeInMilliSeconds - keyframe25, (keyframe26 - keyframe25));
+            let centerX = lerp(58, 73, percent);
+            let centerZ = lerp(60, 10, percent);
+            eye[0] = lerp(29, 44, percent);
+            eye[2] = lerp(57, 9, percent);
+            center = [centerX, 11, centerZ];
+        }
+        else if (timeInMilliSeconds < keyframe27) {
+            let percent = calcProzent(timeInMilliSeconds - keyframe26, (keyframe27 - keyframe26));
+            eye[0] = lerp(44, 70, percent);
+            eye[2] = lerp(9, -19, percent);
+        }
+        else if (timeInMilliSeconds < keyframe28) {
+            let percent = calcProzent(timeInMilliSeconds - keyframe27, (keyframe28 - keyframe27));
+            eye[0] = lerp(70, 58, percent);
+            eye[1] = lerp(18.5, 5, percent);
+            eye[2] = lerp(-19, -35, percent);
+        }
+        else if (timeInMilliSeconds < keyframe29) {
+            let percent = calcProzent(timeInMilliSeconds - keyframe28, (keyframe29 - keyframe28));
+            eye[0] = lerp(58, 42, percent);
+            eye[2] = lerp(-35, -65, percent);
+        }
+        else if (timeInMilliSeconds < keyframe30) {
+            let percent = calcProzent(timeInMilliSeconds - keyframe29, (keyframe30 - keyframe29));
+            eye[0] = lerp(42, 16, percent);
+            eye[1] = lerp(5, 30, percent);
+            eye[2] = lerp(-65, -95, percent);
+        }
+    }
+
+    heliNode.matrix = glm.transform({translate: [planeX, planeY, planeZ], rotateX : -90, rotateZ: planeRotateY, scale: helisize});
+    heliRotorNode.matrix = glm.transform({translate: [planeX,planeY, planeZ], rotateX : -90, scale: 1, rotateZ: timeInMilliSeconds*timeInMilliSeconds, scale: helisize});
+}
+
+function calcProzent(timeInMilliseconds, keyFrame){
+    return timeInMilliseconds/keyFrame;
+}
+
+function lerp(a, b, n) {
+    return (1 - n) * a + n * b;
+}
+

@@ -576,6 +576,7 @@ function createSkyBox(gl, texture){
   var skyBox = new ShaderSGNode(skyBoxShaderProgram);
   skyBox.append( new EnvironmentSGNode(texture,4,false,false,false,
                       new RenderSGNode(makeSphere(70))));
+
   var transformNode =  new TransformationSGNode(glm.translate(0,0,0));
   transformNode.append(skyBox);
   return skyBox;

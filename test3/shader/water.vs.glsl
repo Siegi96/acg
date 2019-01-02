@@ -1,6 +1,4 @@
-/**
- * Created by Daniel Keppinger on 07.01.2018.
- */
+
 attribute vec3 a_position;
 attribute vec2 a_texCoord;
 

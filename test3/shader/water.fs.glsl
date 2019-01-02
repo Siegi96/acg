@@ -1,6 +1,4 @@
-/**
- * Created by Daniel Keppinger on 07.01.2018.
- */
+
 precision mediump float;
 
 uniform sampler2D u_noiseSampler;
