@@ -94,13 +94,13 @@ loadResources({
     heli_main_rotor: '../models/heli/main_rotor.obj',
     heli_tex: '../models/heli/fuselage.jpg',
 
-    scan: '../models/hasi.obj',
+    scan: '../models/sophie.obj',
     scan_tex: '../textures/boat_texture.jpg',
 
-    scan2: '../models/hasi.obj',
+    scan2: '../models/chrisi.obj',
     scan2_tex: '../textures/boat_texture.jpg',
 
-    scan3: '../models/hasi.obj',
+    scan3: '../models/siegi.obj',
     scan3_tex: '../textures/boat_texture.jpg',
 
     // boat
@@ -225,7 +225,7 @@ function createSceneGraph(gl, resources) {
         scanMaterial.specular = [0.5, 0.5, 0.5, 1];
         scanMaterial.shininess = 4.0;
 
-        let scanNode = new TransformationSGNode(glm.transform({ translate: [58,11,60], rotateY: 5, rotateX : 272, rotateZ: 90, scale: 0.05 }),  [
+        let scanNode = new TransformationSGNode(glm.transform({ translate: [58,-5,60], rotateY: 5, rotateX : 272, rotateZ: 90, scale: 45.05 }),  [
             scanMaterial
         ]);
         root.append(scanNode);
@@ -241,7 +241,7 @@ function createSceneGraph(gl, resources) {
         scanMaterial.specular = [0.5, 0.5, 0.5, 1];
         scanMaterial.shininess = 4.0;
 
-        let scanNode = new TransformationSGNode(glm.transform({ translate: [73,11,10], rotateY: 5 ,rotateX : 272, rotateZ: 90, scale: 0.05 }),  [
+        let scanNode = new TransformationSGNode(glm.transform({ translate: [73,0,11], rotateY: 5 ,rotateX : 272, rotateZ: 90, scale: 47.5 }),  [
             scanMaterial
         ]);
         root.append(scanNode);
@@ -257,7 +257,7 @@ function createSceneGraph(gl, resources) {
         scanMaterial.specular = [0.5, 0.5, 0.5, 1];
         scanMaterial.shininess = 4.0;
 
-        let scanNode = new TransformationSGNode(glm.transform({ translate: [65,11,35], rotateY: 5, rotateX : 272, rotateZ: 90, scale: 0.05 }),  [
+        let scanNode = new TransformationSGNode(glm.transform({ translate: [65,-0,35], rotateY: 5, rotateX : 272, rotateZ: 90, scale: 45.05 }),  [
             scanMaterial
         ]);
         root.append(scanNode);
