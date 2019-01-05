@@ -8,8 +8,8 @@ const camera = {
 };
 
 //camera perspective
-let eye = [-60,23.5,87];
-let center = [-60,18,80];
+let eye = [0,20,40];
+let center = [-1,5,20];
 
 //plane perspective
 let planeX = -60;
@@ -33,10 +33,11 @@ var textureNode;
 
 
 // shader
+var fireShaderProgram;
 var singleShaderProgram;
+var skyboxShaderProgram;
 var textureShaderProgram;
 var waterShaderProgram;
-var skyboxShaderProgram;
 
 // water
 var waterScene;
@@ -52,6 +53,14 @@ var waveImage;
 var waveTexture;
 var heightImage;
 var heightTexture;
+
+// fire
+var particleSystems = [];
+var currentParticleSystemIndex = 0;
+var fireParticleSystem = null;
+
+var lastTimeMillis = 0;
+var clockTime = 0;
 
 // settings
 var canvasWidth = 1200;
@@ -73,6 +82,11 @@ var textures;
 
 //load the required resources using a utility function
 loadResources({
+
+    // fire shader
+    vs_fire: 'shader/fire.vs.glsl',
+    fs_fire: 'shader/fire.fs.glsl',
+
     // cubemap shader
     vs_env: 'shader/envmap.vs.glsl',
     fs_env: 'shader/envmap.fs.glsl',
@@ -110,6 +124,8 @@ loadResources({
     // water
     waterPlane100_100: '../models/water300_300.obj',
 
+    // fire
+    texture_fire: '../textures/fire.jpg',
 
 
 // cubemap images
@@ -121,6 +137,7 @@ loadResources({
   env_neg_z: '../textures/mountains/nz.jpg',
 
 }).then(function (resources) { //an object containing our keys with the loaded resources/) {
+
     init(resources);
 
     render(0);
@@ -135,6 +152,7 @@ function init(resources) {
     gl.enable(gl.DEPTH_TEST);
 
     // create shader programs
+    // fireShaderProgram = createProgram(gl, resources.vs_fire, resources.fs_fire);
     singleShaderProgram = createProgram(gl, resources.vs_single, resources.fs_single);
     skyboxShaderProgram = createProgram(gl, resources.vs_env, resources.fs_env);
     textureShaderProgram = createProgram(gl,resources.vs_texture, resources.fs_texture);
@@ -155,6 +173,25 @@ function init(resources) {
 
     //create scenegraph
     root = createSceneGraph(gl, resources);
+
+    gl.enable(gl.BLEND);
+    // Init Particle System Pool
+    for (var i = 0; i < 10; i++) {
+        var system = new ParticleSystemNode(gl, resources);
+        system.createParticleValues(gl, resources);
+        particleSystems.push(system);
+    }
+    fireParticleSystem = new ParticleSystemNode(gl, resources);
+    fireParticleSystem.setColor([0.8, 0.25, 0.25, 1.0]);
+    fireParticleSystem.setPosition([2.0, 1.5, 2.0]);
+    fireParticleSystem.setRepeat(true);
+    fireParticleSystem.setSize(5);
+    fireParticleSystem.setLifetime(3.0);
+    fireParticleSystem.setNumOfParticles(300);
+    fireParticleSystem.upVelocity = 0.4;
+    fireParticleSystem.sideVelocity = 0.2;
+
+    fireParticleSystem.createParticleValues(gl, resources);
 }
 
 
@@ -163,7 +200,7 @@ function createWater(gl, resources){
 
   var waterShaderNode  = new ShaderSGNode(waterShaderProgram);
   let waterRenderNode = new RenderSGNode(resources.waterPlane100_100);
-  waterShaderNode.append(new TransformationSGNode(glm.transform({ translate: [0,0,0], scale: 1.5}), [waterRenderNode]));
+  waterShaderNode.append(new TransformationSGNode(glm.transform({ translate: [0,0,0], scale: 3}), [waterRenderNode]));
   return waterShaderNode;
 }
 
@@ -179,7 +216,7 @@ function createSceneGraph(gl, resources) {
   {
     let waterShaderNode = new ShaderSGNode(waterShaderProgram);
     let waterRenderNode = new RenderSGNode(resources.waterPlane100_100);
-    let waterTransformationNode = new TransformationSGNode(glm.transform({ translate: [0,0,0], rotateZ: -180, scale: 1.5}), [waterRenderNode])
+    let waterTransformationNode = new TransformationSGNode(glm.transform({ translate: [0,0,0], rotateZ: -180, scale: 3}), [waterRenderNode])
     waterShaderNode.append(waterTransformationNode);
     root.append(waterShaderNode);
   }
@@ -188,7 +225,7 @@ function createSceneGraph(gl, resources) {
 
   {
     let skyboxShaderNode = new ShaderSGNode(skyboxShaderProgram);
-    let skyboxEnvironmentNode = new EnvironmentSGNode(envcubetexture,4,false,false,false, new RenderSGNode(makeSphere(120)));
+    let skyboxEnvironmentNode = new EnvironmentSGNode(envcubetexture,4,false,false,false, new RenderSGNode(makeSphere(200)));
     skyboxShaderNode.append(skyboxEnvironmentNode);
     root.append(skyboxShaderNode);
   }
@@ -313,11 +350,18 @@ function createSceneGraph(gl, resources) {
 }
 
 function render(timeInMilliSeconds){
+
+    // compute delta between frames
+    let delta = timeInMilliSeconds - lastTimeMillis;
+    lastTimeMillis = timeInMilliSeconds;
+    clockTime += delta / 1000;
+
     checkForWindowResize(gl);
 
+    // TODO: boot spiegelt sich so schiach!
     RenderWaterReflectionTexture();
 
-    drivePlane(timeInMilliSeconds);
+    //drivePlane(timeInMilliSeconds);
 
     //setup viewport
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
@@ -326,7 +370,7 @@ function render(timeInMilliSeconds){
 
     //setup context and camera matrices
     const context = createSGContext(gl);
-    context.projectionMatrix = mat4.perspective(mat4.create(), 30, gl.drawingBufferWidth / gl.drawingBufferHeight, 0.01, 200);
+    context.projectionMatrix = mat4.perspective(mat4.create(), 30, gl.drawingBufferWidth / gl.drawingBufferHeight, 0.01, 1000);
     //very primitive camera implementation
     let lookAtMatrix = mat4.lookAt(mat4.create(), eye, center, [0,-1,0]);
     let mouseRotateMatrix = mat4.multiply(mat4.create(),
@@ -355,14 +399,25 @@ function render(timeInMilliSeconds){
     root.render(context);
 
 
+
+
     gl.useProgram(waterShaderProgram);
     setUpWaterUniforms(timeInMilliSeconds);
     bindWaterTextures();
 
     waterScene.render(context);
 
-    unbindWaterTextures();
+   unbindWaterTextures();
 
+
+    // Render particle systems
+    for (var i = 0; i < particleSystems.length; i++) {
+      //particleSystems[i].render(delta, context);
+    }
+    fireParticleSystem.render(delta, context);
+
+    gl.depthMask(true);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
 
     //animate
@@ -611,7 +666,7 @@ function RenderWaterReflectionTexture(){
 
 
   const context = createSGContext(gl);
-  context.projectionMatrix = mat4.perspective(mat4.create(), 30, canvasWidth / canvasHeight, 0.01, 100);
+  context.projectionMatrix = mat4.perspective(mat4.create(), 30, canvasWidth / canvasHeight, 0.01, 1000);
 
   let distance = cameraStartPos[1] - waterHeight;
   let reversedCameraPosition = [cameraStartPos[0],cameraStartPos[1] - distance * 2,cameraStartPos[2]];//Reverse the cameraheight for correct reflection
@@ -660,14 +715,16 @@ function RenderWaterRefractionTexture(context){
 }
 function setUpWaterUniforms(timeInMilliseconds){
   gl.uniform1f(gl.getUniformLocation(waterShaderProgram, 'u_time'), timeInMilliseconds/1000.0);
+  // TODO: set sun direction (weiß am wasser)
+  //gl.uniform3fv(gl.getUniformLocation(waterShaderProgram, 'u_sunDirection'), [1,1,0]);
   gl.uniform3fv(gl.getUniformLocation(waterShaderProgram, 'u_sunDirection'), [1,1,0]);
   gl.uniform3fv(gl.getUniformLocation(waterShaderProgram, 'u_sunColor'), [1,1,1]);
   gl.uniform3fv(gl.getUniformLocation(waterShaderProgram, 'u_horizonColor'), [0.6,0.6,0.6]);
   gl.uniform3fv(gl.getUniformLocation(waterShaderProgram, 'u_zenithColor'), [0.6,0.6,0.6]);
   gl.uniform1f(gl.getUniformLocation(waterShaderProgram, 'u_atmosphereDensity'), 0.000025);
-  gl.uniform1f(gl.getUniformLocation(waterShaderProgram, 'u_fogDensity'), 0.003);
-  gl.uniform1f(gl.getUniformLocation(waterShaderProgram, 'u_fogFalloff'), 20.0);
-  gl.uniform3fv(gl.getUniformLocation(waterShaderProgram, 'u_fogColor'), [0.8,0.8,0.9]);
+  //gl.uniform1f(gl.getUniformLocation(waterShaderProgram, 'u_fogDensity'), 0.003);
+  //gl.uniform1f(gl.getUniformLocation(waterShaderProgram, 'u_fogFalloff'), 20.0);
+  //gl.uniform3fv(gl.getUniformLocation(waterShaderProgram, 'u_fogColor'), [0.8,0.8,0.9]);
 
 }
 function bindWaterTextures(){
@@ -974,4 +1031,3 @@ function calcProzent(timeInMilliseconds, keyFrame){
 function lerp(a, b, n) {
     return (1 - n) * a + n * b;
 }
-

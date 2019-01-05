@@ -46,17 +46,17 @@ vec3 atmosphereColor(vec3 rayDirection){
     return skyColor+u_sunColor*pow(sunTheta, 256.0)*0.5;
 }
 
-vec3 applyFog(vec3 albedo, float dist, vec3 rayOrigin, vec3 rayDirection){
-    float fog = exp((-rayOrigin.y*u_fogFalloff)*u_fogDensity) * (1.0-exp(-dist*rayDirection.y*u_fogFalloff*u_fogDensity))/(rayDirection.y*u_fogFalloff);
-    return mix(albedo, u_fogColor, clamp(fog, 0.0, 1.0));
-}
-
-vec3 aerialPerspective(vec3 albedo, float dist, vec3 rayOrigin, vec3 rayDirection){
-    /* not used cause buggy */
-    //vec3 atmosphere = atmosphereColor(rayDirection)+vec3(0.0, 0.02, 0.04);
-    //vec3 color = mix(albedo, atmosphere, clamp(1.0-exp(-dist*u_atmosphereDensity), 0.0, 1.0));
-    return applyFog(albedo, dist, rayOrigin, rayDirection);
-}
+// vec3 applyFog(vec3 albedo, float dist, vec3 rayOrigin, vec3 rayDirection){
+//     float fog = exp((-rayOrigin.y*u_fogFalloff)*u_fogDensity) * (1.0-exp(-dist*rayDirection.y*u_fogFalloff*u_fogDensity))/(rayDirection.y*u_fogFalloff);
+//     return mix(albedo, u_fogColor, clamp(fog, 0.0, 1.0));
+// }
+//
+// vec3 aerialPerspective(vec3 albedo, float dist, vec3 rayOrigin, vec3 rayDirection){
+//     /* not used cause buggy */
+//     //vec3 atmosphere = atmosphereColor(rayDirection)+vec3(0.0, 0.02, 0.04);
+//     //vec3 color = mix(albedo, atmosphere, clamp(1.0-exp(-dist*u_atmosphereDensity), 0.0, 1.0));
+//     return applyFog(albedo, dist, rayOrigin, rayDirection);
+// }
 
 vec2 calculateReflectionTexCoords(vec2 distortion){
   vec3 inverseProj = vec3(v_projPos.x,-v_projPos.y,v_projPos.z);
@@ -103,7 +103,7 @@ void main() {
 	vec3 albedo = mix((scatter+(vec3(refractionSample)*diffuse)), (vec3(0.1)+vec3(reflectionSample)*0.9+specular), reflectance);
 
   vec3 rayDirection = normalize(v_worldPos - v_eyePos);
-  albedo = aerialPerspective(albedo, length(worldToEye), v_eyePos,rayDirection);
+  //albedo = aerialPerspective(albedo, length(worldToEye), v_eyePos,rayDirection);
 
 	gl_FragColor = vec4(albedo, 1.0);
 }
