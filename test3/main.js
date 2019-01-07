@@ -62,6 +62,38 @@ var fireParticleSystem = null;
 var lastTimeMillis = 0;
 var clockTime = 0;
 
+// fire 2.0
+var fireShaderNode;
+var previousTime = new Date().getTime()
+
+var clockTime = 3
+
+var redFirePos = [2.0, 1.5, 2.0]
+var redFireColor = [0.8, 0.25, 0.25, 1.0]
+
+var purpFirePos = [0.5, 0.0, 0.0]
+var purpFireColor = [0.25, 0.25, 8.25, 1.0]
+
+// fire 3.0
+
+// Create WebGL buffers
+var lifetimeBuffer = null;
+var texCoordBuffer = null;
+var triCornerBuffer = null;
+var centerOffsetBuffer = null;
+var velocityBuffer = null;
+
+
+var fireShaderNode;
+var color = [0.8, 0.25, 0.25, 1.0];
+var position = [2.0, 1.5, 2.0];
+var repeat = true;
+var size = 5;
+var lifetime = 5.0;
+var numOfParticles = 1000;
+var upVelocity = 0.1 * Math.random();
+var sideVelocity = 0.2;
+
 // settings
 var canvasWidth = 1200;
 var canvasHeight = 675;
@@ -88,8 +120,8 @@ loadResources({
     fs_fire: 'shader/fire.fs.glsl',
 
     // cubemap shader
-    vs_env: 'shader/envmap.vs.glsl',
-    fs_env: 'shader/envmap.fs.glsl',
+    vs_skybox: 'shader/skybox.vs.glsl',
+    fs_skybox: 'shader/skybox.fs.glsl',
 
     // water shader
     vs_water: 'shader/water.vs.glsl',
@@ -127,19 +159,17 @@ loadResources({
     // fire
     texture_fire: '../textures/fire.jpg',
 
+    // skybox images
+    skybox_pos_x: '../textures/mountains/px.jpg',
+    skybox_neg_x: '../textures/mountains/nx.jpg',
+    skybox_pos_y: '../textures/mountains/py.jpg',
+    skybox_neg_y: '../textures/mountains/ny.jpg',
+    skybox_pos_z: '../textures/mountains/pz.jpg',
+    skybox_neg_z: '../textures/mountains/nz.jpg',
 
-// cubemap images
-  env_pos_x: '../textures/mountains/px.jpg',
-  env_neg_x: '../textures/mountains/nx.jpg',
-  env_pos_y: '../textures/mountains/py.jpg',
-  env_neg_y: '../textures/mountains/ny.jpg',
-  env_pos_z: '../textures/mountains/pz.jpg',
-  env_neg_z: '../textures/mountains/nz.jpg',
-
-}).then(function (resources) { //an object containing our keys with the loaded resources/) {
+}).then(function (resources) {
 
     init(resources);
-
     render(0);
 });
 
@@ -152,14 +182,14 @@ function init(resources) {
     gl.enable(gl.DEPTH_TEST);
 
     // create shader programs
-    // fireShaderProgram = createProgram(gl, resources.vs_fire, resources.fs_fire);
+    fireShaderProgram = createProgram(gl, resources.vs_fire, resources.fs_fire);
     singleShaderProgram = createProgram(gl, resources.vs_single, resources.fs_single);
-    skyboxShaderProgram = createProgram(gl, resources.vs_env, resources.fs_env);
+    skyboxShaderProgram = createProgram(gl, resources.vs_skybox, resources.fs_skybox);
     textureShaderProgram = createProgram(gl,resources.vs_texture, resources.fs_texture);
     waterShaderProgram = createProgram(gl, resources.vs_water, resources.fs_water);
 
     // init skybox
-    cubemap =  [resources.env_pos_x, resources.env_neg_x, resources.env_pos_y, resources.env_neg_y, resources.env_pos_z, resources.env_neg_z,false]
+    cubemap =  [resources.skybox_pos_x, resources.skybox_neg_x, resources.skybox_pos_y, resources.skybox_neg_y, resources.skybox_pos_z, resources.skybox_neg_z,false]
     initCubeMap(resources,cubemap);
 
     // init water
@@ -175,24 +205,121 @@ function init(resources) {
     root = createSceneGraph(gl, resources);
 
     gl.enable(gl.BLEND);
-    // Init Particle System Pool
-    for (var i = 0; i < 10; i++) {
-        var system = new ParticleSystemNode(gl, resources);
-        system.createParticleValues(gl, resources);
-        particleSystems.push(system);
-    }
-    fireParticleSystem = new ParticleSystemNode(gl, resources);
-    fireParticleSystem.setColor([0.8, 0.25, 0.25, 1.0]);
-    fireParticleSystem.setPosition([2.0, 1.5, 2.0]);
-    fireParticleSystem.setRepeat(true);
-    fireParticleSystem.setSize(5);
-    fireParticleSystem.setLifetime(3.0);
-    fireParticleSystem.setNumOfParticles(300);
-    fireParticleSystem.upVelocity = 0.4;
-    fireParticleSystem.sideVelocity = 0.2;
 
-    fireParticleSystem.createParticleValues(gl, resources);
 }
+
+function createFire(gl, resources) {
+
+  var numParticles = 1000;
+  var lifetimes = [];
+  var triCorners = [];
+  var texCoords = [];
+  var vertexIndices = [];
+  var centerOffsets = [];
+  var velocities = [];
+
+  var triCornersCycle = [-1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0];
+  var texCoordsCycle = [0, 0, 1, 0, 1, 1, 0, 1];
+
+  for (var i=0; i<numParticles; i++) {
+    var lifetime = 8 * Math.random();
+
+    var diameterAroundCenter = 0.5;
+    var halfDiameterAroundCenter = diameterAroundCenter / 2;
+
+    var xStartOffset = diameterAroundCenter * Math.random() - halfDiameterAroundCenter;
+    xStartOffset /= 3;
+
+    var yStartOffset = diameterAroundCenter * Math.random() - halfDiameterAroundCenter;
+    yStartOffset /= 10;
+
+    var zStartOffset = diameterAroundCenter * Math.random() - halfDiameterAroundCenter;
+    zStartOffset /= 3;
+
+    var upVelocity = 0.1 * Math.random();
+
+    var xSideVelocity = 0.02 * Math.random();
+
+    if (xStartOffset > 0) xSideVelocity *= -1;
+
+    var zSideVelocity = 0.02 * Math.random();
+
+    if (zStartOffset > 0) zSideVelocity *= -1;
+
+    for (var j=0; j<4; j++) {
+      lifetimes.push(lifetime);
+
+      triCorners.push(triCornersCycle[j * 2]);
+      triCorners.push(triCornersCycle[j * 2 + 1]);
+
+      texCoords.push(texCoordsCycle[j * 2]);
+      texCoords.push(texCoordsCycle[j * 2 + 1]);
+
+      centerOffsets.push(xStartOffset);
+      centerOffsets.push(yStartOffset + Math.abs(xStartOffset / 2.0));
+      centerOffsets.push(zStartOffset);
+
+      velocities.push(xSideVelocity);
+      velocities.push(upVelocity);
+      velocities.push(zSideVelocity);
+    }
+
+    vertexIndices = vertexIndices.concat([0, 1, 2, 0, 2, 3].map(function (num) {
+      return num + 4 * i
+    }));
+  }
+
+  // Create WebGL buffers
+  lifetimeBuffer = createBuffer('ARRAY_BUFFER', Float32Array, lifetimes);
+  texCoordBuffer = createBuffer('ARRAY_BUFFER', Float32Array, texCoords);
+  triCornerBuffer = createBuffer('ARRAY_BUFFER', Float32Array, triCorners);
+  centerOffsetBuffer = createBuffer('ARRAY_BUFFER', Float32Array, centerOffsets);
+  velocityBuffer = createBuffer('ARRAY_BUFFER', Float32Array, velocities);
+  createBuffer('ELEMENT_ARRAY_BUFFER', Uint16Array, vertexIndices);
+}
+
+function setupParticleProgram() {
+    gl.useProgram(fireShaderNode.program);
+    var lifetimeAttrib = gl.getAttribLocation(
+        fireShaderNode.program, 'aLifetime'
+    )
+    var texCoordAttrib = gl.getAttribLocation(
+        fireShaderNode.program, 'aTextureCoords'
+    )
+    var triCornerAttrib = gl.getAttribLocation(
+        fireShaderNode.program, 'aTriCorner'
+    )
+    var centerOffsetAttrib = gl.getAttribLocation(
+        fireShaderNode.program, 'aCenterOffset'
+    )
+    var velocityAttrib = gl.getAttribLocation(
+        fireShaderNode.program, 'aVelocity'
+    )
+    gl.enableVertexAttribArray(lifetimeAttrib)
+    gl.enableVertexAttribArray(texCoordAttrib)
+    gl.enableVertexAttribArray(triCornerAttrib)
+    gl.enableVertexAttribArray(centerOffsetAttrib)
+    gl.enableVertexAttribArray(velocityAttrib)
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, lifetimeBuffer);
+    gl.vertexAttribPointer(lifetimeAttrib, 1, gl.FLOAT, false, 0, 0)
+    gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+    gl.vertexAttribPointer(texCoordAttrib, 2, gl.FLOAT, false, 0, 0)
+    gl.bindBuffer(gl.ARRAY_BUFFER, triCornerBuffer);
+    gl.vertexAttribPointer(triCornerAttrib, 2, gl.FLOAT, false, 0, 0)
+    gl.bindBuffer(gl.ARRAY_BUFFER, centerOffsetBuffer);
+    gl.vertexAttribPointer(centerOffsetAttrib, 3, gl.FLOAT, false, 0, 0)
+    gl.bindBuffer(gl.ARRAY_BUFFER, velocityBuffer);
+    gl.vertexAttribPointer(velocityAttrib, 3, gl.FLOAT, false, 0, 0)
+}
+
+function createBuffer (bufferType, DataType, data) {
+    var buffer = gl.createBuffer()
+    gl.bindBuffer(gl[bufferType], buffer)
+    gl.bufferData(gl[bufferType], new DataType(data), gl.STATIC_DRAW)
+    return buffer
+}
+
 
 
 
@@ -203,6 +330,7 @@ function createWater(gl, resources){
   waterShaderNode.append(new TransformationSGNode(glm.transform({ translate: [0,0,0], scale: 3}), [waterRenderNode]));
   return waterShaderNode;
 }
+
 
 function createSceneGraph(gl, resources) {
 
@@ -216,7 +344,7 @@ function createSceneGraph(gl, resources) {
   {
     let waterShaderNode = new ShaderSGNode(waterShaderProgram);
     let waterRenderNode = new RenderSGNode(resources.waterPlane100_100);
-    let waterTransformationNode = new TransformationSGNode(glm.transform({ translate: [0,0,0], rotateZ: -180, scale: 3}), [waterRenderNode])
+    let waterTransformationNode = new TransformationSGNode(glm.transform({ translate: [0,0,0], rotateZ: -180, scale: 3}), [waterRenderNode]);
     waterShaderNode.append(waterTransformationNode);
     root.append(waterShaderNode);
   }
@@ -225,128 +353,90 @@ function createSceneGraph(gl, resources) {
 
   {
     let skyboxShaderNode = new ShaderSGNode(skyboxShaderProgram);
-    let skyboxEnvironmentNode = new EnvironmentSGNode(envcubetexture,4,false,false,false, new RenderSGNode(makeSphere(200)));
+    let skyboxEnvironmentNode = new EnvironmentSGNode(skyboxtexture,4,false,false,false, new RenderSGNode(makeSphere(200)));
     skyboxShaderNode.append(skyboxEnvironmentNode);
     root.append(skyboxShaderNode);
   }
 
+  // create fire node
 
-    //create root scenegraph
+  createFire(gl, resources);
 
-    textures = {heli: resources.heli_tex, marmor: resources.scan_tex};
+  {
+    fireShaderNode = new ShaderSGNode(fireShaderProgram);
 
+    let pos = [[70, 2, 110], [70, 2, 100], [70, 2, 90], [70, 2, 95], [70, 2, 79], [70, 2, 30]];
 
-    {
-        //initialize light
-        lightNode = new LightSGNode(); //use now framework implementation of light node
-        lightNode.ambient = [0.2, 0.2, 0.2, 1];
-        lightNode.diffuse = [0.8, 0.8, 0.8, 1];
-        lightNode.specular = [1, 1, 1, 1];
-        lightNode.position = [0, 0, 0];
-
-        rotateLight = new TransformationSGNode(mat4.create());
-        translateLight = new TransformationSGNode(glm.translate(-300,500,400)); //translating the light is the same as setting the light position
-
-        rotateLight.append(translateLight);
-        translateLight.append(lightNode);
-        root.append(rotateLight);
-    }
-
-    {
-        let scanTexture = new TextureSGNode(textures.marmor, 0, 'u_diffuseTex',new RenderSGNode(resources.scan));
-
-        let scanMaterial = new MaterialSGNode( scanTexture);
-        //gold
-        scanMaterial.ambient = [0.0, 0.0, 0.0, 1];
-        scanMaterial.diffuse = [0.25, 0.13, 0.1, 1];
-        scanMaterial.specular = [0.5, 0.5, 0.5, 1];
-        scanMaterial.shininess = 4.0;
-
-        let scanNode = new TransformationSGNode(glm.transform({ translate: [58,-5,60], rotateY: 5, rotateX : 272, rotateZ: 90, scale: 45.05 }),  [
-            scanMaterial
-        ]);
-        root.append(scanNode);
-    }
-
-    {
-        let scanTexture = new TextureSGNode(textures.marmor, 0, 'u_diffuseTex',new RenderSGNode(resources.scan2));
-
-        let scanMaterial = new MaterialSGNode( scanTexture);
-        //gold
-        scanMaterial.ambient = [0.0, 0.0, 0.0, 1];
-        scanMaterial.diffuse = [0.25, 0.13, 0.1, 1];
-        scanMaterial.specular = [0.5, 0.5, 0.5, 1];
-        scanMaterial.shininess = 4.0;
-
-        let scanNode = new TransformationSGNode(glm.transform({ translate: [73,0,11], rotateY: 5 ,rotateX : 272, rotateZ: 90, scale: 47.5 }),  [
-            scanMaterial
-        ]);
-        root.append(scanNode);
-    }
-
-    {
-        let scanTexture = new TextureSGNode(textures.marmor, 0, 'u_diffuseTex',new RenderSGNode(resources.scan3));
-
-        let scanMaterial = new MaterialSGNode( scanTexture);
-        //gold
-        scanMaterial.ambient = [0.0, 0.0, 0.0, 1];
-        scanMaterial.diffuse = [0.25, 0.13, 0.1, 1];
-        scanMaterial.specular = [0.5, 0.5, 0.5, 1];
-        scanMaterial.shininess = 4.0;
-
-        let scanNode = new TransformationSGNode(glm.transform({ translate: [65,-0,35], rotateY: 5, rotateX : 272, rotateZ: 90, scale: 45.05 }),  [
-            scanMaterial
-        ]);
-        root.append(scanNode);
-    }
-
-
-    {
-        let textureNode = new TextureSGNode(Object.values(textures)[0], 0, 'u_diffuseTex',new RenderSGNode(resources.heli_model));
-
-        let heli = new MaterialSGNode( textureNode);
-        //gold
-        heli.ambient = [0.0, 0.0, 0.0, 1];
-        heli.diffuse = [0.25, 0.13, 0.1, 1];
-        heli.specular = [0.5, 0.5, 0.5, 1];
-        heli.shininess = 4.0;
-
-        heliNode = new TransformationSGNode(glm.transform({ translate: [planeX,planeY, planeZ], rotateX : -90, scale: helisize }),  [
-            heli
-        ]);
-        root.append(heliNode);
-    }
-
-    {
-        let textureNode = new TextureSGNode(Object.values(textures)[0], 0, 'u_diffuseTex',new RenderSGNode(resources.heli_main_rotor));
-
-        let heli_rotor = new MaterialSGNode( textureNode);
-        //gold
-        heli_rotor.ambient = [0.0, 0.0, 0.0, 1];
-        heli_rotor.diffuse = [0.25, 0.13, 0.1, 1];
-        heli_rotor.specular = [0.5, 0.5, 0.5, 1];
-        heli_rotor.shininess = 4.0;
-
-        heliRotorNode = new TransformationSGNode(glm.transform({ translate: [planeX,planeY, planeZ], rotateX : -90, scale: helisize }),  [
-            heli_rotor
-        ]);
-        root.append(heliRotorNode);
-    }
-
-    {
-        var yachtTextureNode = new TextureSGNode(resources.texture_yacht, 0, 'u_diffuseTex', new RenderSGNode(resources.model_yacht));
-        let yachtMaterialNode = new MaterialSGNode(yachtTextureNode);
-
-        yachtMaterialNode.ambient = [0.0, 0.0, 0.0, 1];
-        yachtMaterialNode.diffuse = [0.25, 0.13, 0.1, 1];
-        yachtMaterialNode.specular = [0.5, 0.5, 0.5, 1];
-        yachtMaterialNode.shininess = 4.0;
-
-        var yachtTransformationNode = new TransformationSGNode(glm.transform({ translate: [0,2, 0], scale: 0.1 }),  [yachtMaterialNode]);
-        root.append(yachtTransformationNode);
+    for (var i=0; i<pos.length; i++) {
+      let fireTextureNode = new TextureSGNode(resources.texture_fire, 0, 'u_particleAtlas', new RenderSGNode(makeRect(1.0, 1.0, this.vertexIndices)));
+      for (var j=0; j<5; j++) {
+        let fireTransformationNode = new TransformationSGNode(glm.transform({ translate: pos[i]}),  [fireTextureNode]);
+        fireShaderNode.append(fireTransformationNode);
       }
+    }
+  }
 
-    return root;
+  setupParticleProgram();
+
+  {
+    //initialize light
+    lightNode = new LightSGNode(); //use now framework implementation of light node
+    lightNode.ambient = [0.2, 0.2, 0.2, 1];
+    lightNode.diffuse = [0.8, 0.8, 0.8, 1];
+    lightNode.specular = [1, 1, 1, 1];
+    lightNode.position = [0, 0, 0];
+
+    rotateLight = new TransformationSGNode(mat4.create());
+    translateLight = new TransformationSGNode(glm.translate(-300,500,400)); //translating the light is the same as setting the light position
+
+    rotateLight.append(translateLight);
+    translateLight.append(lightNode);
+    root.append(rotateLight);
+  }
+
+  {
+    let sophieTextureNode = new TextureSGNode(resources.scan_tex, 0, 'u_diffuseTex',new RenderSGNode(resources.scan));
+    let sophieMaterialNode = new MaterialSGNode(sophieTextureNode);
+    let sophieTransformationNode = new TransformationSGNode(glm.transform({ translate: [58,-5,60], rotateY: 5, rotateX : 272, rotateZ: 90, scale: 45.05 }),  [sophieMaterialNode]);
+    root.append(sophieTransformationNode);
+  }
+
+  {
+    let chrisiTextureNode = new TextureSGNode(resources.scan_tex, 0, 'u_diffuseTex',new RenderSGNode(resources.scan2));
+    let chrisiMaterialNode = new MaterialSGNode(chrisiTextureNode);
+    let chrisiTransformationNode = new TransformationSGNode(glm.transform({ translate: [73,0,11], rotateY: 5 ,rotateX : 272, rotateZ: 90, scale: 47.5 }),  [chrisiMaterialNode]);
+    root.append(chrisiTransformationNode);
+  }
+
+  {
+    let siegiTextureNode = new TextureSGNode(resources.scan_tex, 0, 'u_diffuseTex',new RenderSGNode(resources.scan3));
+    let siegiMaterialNode = new MaterialSGNode(siegiTextureNode);
+    let siegiTransformation = new TransformationSGNode(glm.transform({ translate: [65,-0,35], rotateY: 5, rotateX : 272, rotateZ: 90, scale: 45.05 }),  [siegiMaterialNode]);
+    root.append(siegiTransformation);
+  }
+
+  {
+    let heliTextureNode = new TextureSGNode(resources.heli_tex, 0, 'u_diffuseTex', new RenderSGNode(resources.heli_model));
+    let heliMaterialNode = new MaterialSGNode(heliTextureNode);
+    let heliTransformationNode = new TransformationSGNode(glm.transform({ translate: [planeX,planeY, planeZ], rotateX : -90, scale: helisize }),  [heliMaterialNode]);
+    root.append(heliTransformationNode);
+  }
+
+  {
+    let rotorTextureNode = new TextureSGNode(resources.heli_tex, 0, 'u_diffuseTex',new RenderSGNode(resources.heli_main_rotor));
+    let rotorMaterialNode = new MaterialSGNode(rotorTextureNode);
+    let rotorTransformationNode = new TransformationSGNode(glm.transform({ translate: [planeX,planeY, planeZ], rotateX : -90, scale: helisize }),  [rotorMaterialNode]);
+    root.append(rotorTransformationNode);
+  }
+
+  {
+    var yachtTextureNode = new TextureSGNode(resources.texture_yacht, 0, 'u_diffuseTex', new RenderSGNode(resources.model_yacht));
+    let yachtMaterialNode = new MaterialSGNode(yachtTextureNode);
+    var yachtTransformationNode = new TransformationSGNode(glm.transform({ translate: [0,2, 0], scale: 0.1 }),  [yachtMaterialNode]);
+    root.append(yachtTransformationNode);
+  }
+
+  return root;
 }
 
 function render(timeInMilliSeconds){
@@ -394,12 +484,8 @@ function render(timeInMilliSeconds){
     gl.useProgram(textureShaderProgram);
     gl.uniform3fv( gl.getUniformLocation(textureShaderProgram, "u_reverseLightDirection"), reverseSunDirection);
 
-
     //render scenegraph
     root.render(context);
-
-
-
 
     gl.useProgram(waterShaderProgram);
     setUpWaterUniforms(timeInMilliSeconds);
@@ -407,22 +493,101 @@ function render(timeInMilliSeconds){
 
     waterScene.render(context);
 
-   unbindWaterTextures();
+    unbindWaterTextures();
 
-
-    // Render particle systems
-    for (var i = 0; i < particleSystems.length; i++) {
-      //particleSystems[i].render(delta, context);
-    }
-    fireParticleSystem.render(delta, context);
+    // fire
+    enableFireVertexAttributes();
+    setUpFireUniforms(delta, context);
+    fireShaderNode.render(context);
 
     gl.depthMask(true);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
-
     //animate
     requestAnimationFrame(render);
 }
+
+
+// -----------------------------------------------------------
+// ----- SKYBOX ----------------------------------------------
+// -----------------------------------------------------------
+
+function initCubeMap(resources, skybox_imgs) {
+  //create the texture
+  skyboxtexture = gl.createTexture();
+  //define some texture unit we want to work on
+  gl.activeTexture(gl.TEXTURE0);
+  //bind the texture to the texture unit
+  gl.bindTexture(gl.TEXTURE_CUBE_MAP, skyboxtexture);
+  //set sampling parameters
+  gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, gl.MIRRORED_REPEAT);
+  gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, gl.MIRRORED_REPEAT);
+  //gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_R, gl.MIRRORED_REPEAT); //will be available in WebGL 2
+  gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  //set correct image for each side of the cube map
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, skybox_imgs[6]);//flipping required for our skybox, otherwise images don't fit together
+  gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, skybox_imgs[0]);
+  gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_X, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, skybox_imgs[1]);
+  gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Y, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, skybox_imgs[2]);
+  gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, skybox_imgs[3]);
+  gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Z, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, skybox_imgs[4]);
+  gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, skybox_imgs[5]);
+  //generate mipmaps (optional)
+  gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
+  //unbind the texture again
+  gl.bindTexture(gl.TEXTURE_CUBE_MAP, null);
+}
+
+
+
+// -----------------------------------------------------------
+// ----- FIRE ------------------------------------------------
+// -----------------------------------------------------------
+
+function enableFireVertexAttributes() {
+
+    gl.useProgram(fireShaderNode.program);
+
+    gl.enableVertexAttribArray(gl.getAttribLocation(fireShaderNode.program, 'aLifetime'));
+    gl.enableVertexAttribArray(gl.getAttribLocation(fireShaderNode.program, 'aTextureCoords'));
+    gl.enableVertexAttribArray(gl.getAttribLocation(fireShaderNode.program, 'aTriCorner'));
+    gl.enableVertexAttribArray(gl.getAttribLocation(fireShaderNode.program, 'aCenterOffset'));
+    gl.enableVertexAttribArray(gl.getAttribLocation(fireShaderNode.program, 'aVelocity'));
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, lifetimeBuffer);
+    gl.vertexAttribPointer(gl.getAttribLocation(fireShaderNode.program, 'aLifetime'), 1, gl.FLOAT, false, 0, 0)
+    gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+    gl.vertexAttribPointer(gl.getAttribLocation(fireShaderNode.program, 'aTextureCoords'), 2, gl.FLOAT, false, 0, 0)
+    gl.bindBuffer(gl.ARRAY_BUFFER, triCornerBuffer);
+    gl.vertexAttribPointer(gl.getAttribLocation(fireShaderNode.program, 'aTriCorner'), 2, gl.FLOAT, false, 0, 0)
+    gl.bindBuffer(gl.ARRAY_BUFFER, centerOffsetBuffer);
+    gl.vertexAttribPointer(gl.getAttribLocation(fireShaderNode.program, 'aCenterOffset'), 3, gl.FLOAT, false, 0, 0)
+    gl.bindBuffer(gl.ARRAY_BUFFER, velocityBuffer);
+    gl.vertexAttribPointer(gl.getAttribLocation(fireShaderNode.program, 'aVelocity'), 3, gl.FLOAT, false, 0, 0)
+}
+
+function setUpFireUniforms(delta, context) {
+
+    clockTime += delta / 1000;
+
+    // Disable to get particle system to work
+    gl.depthMask(false);
+
+    // Additive blending
+    gl.blendFunc(gl.ONE, gl.ONE);
+
+   //gl.uniform1f(gl.getUniformLocation(fireShaderNode.program, 'uTime'), clockTime);
+    gl.uniform1f(gl.getUniformLocation(fireShaderNode.program, 'uTimeFrag'), clockTime);
+    gl.uniform1i(gl.getUniformLocation(fireShaderNode.program, 'uUseBillboarding'), true);
+    gl.uniform1i(gl.getUniformLocation(fireShaderNode.program, 'uRepeating'), repeat);
+
+    gl.uniform3fv(gl.getUniformLocation(fireShaderNode.program, 'uFirePos'), position);
+    gl.uniform4fv(gl.getUniformLocation(fireShaderNode.program, 'uColor'), color);
+    gl.uniform1f(gl.getUniformLocation(fireShaderNode.program, 'uSize'), size);
+}
+
+
 
 //camera control
 function initInteraction(canvas) {
@@ -477,32 +642,7 @@ function initInteraction(canvas) {
 }
 
 
-function initCubeMap(resources,env_imgs) {
-  //create the texture
-  envcubetexture = gl.createTexture();
-  //define some texture unit we want to work on
-  gl.activeTexture(gl.TEXTURE0);
-  //bind the texture to the texture unit
-  gl.bindTexture(gl.TEXTURE_CUBE_MAP, envcubetexture);
-  //set sampling parameters
-  gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, gl.MIRRORED_REPEAT);
-  gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, gl.MIRRORED_REPEAT);
-  //gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_R, gl.MIRRORED_REPEAT); //will be available in WebGL 2
-  gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-  //set correct image for each side of the cube map
-  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, env_imgs[6]);//flipping required for our skybox, otherwise images don't fit together
-  gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, env_imgs[0]);
-  gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_X, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, env_imgs[1]);
-  gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Y, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, env_imgs[2]);
-  gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, env_imgs[3]);
-  gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Z, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, env_imgs[4]);
-  gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, env_imgs[5]);
-  //generate mipmaps (optional)
-  gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
-  //unbind the texture again
-  gl.bindTexture(gl.TEXTURE_CUBE_MAP, null);
-}
+
 
 //a scene graph node for setting environment mapping parameters
 class EnvironmentSGNode extends SGNode {
@@ -664,25 +804,20 @@ function RenderWaterReflectionTexture(){
   gl.clearColor(0,0, 0, 0);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-
   const context = createSGContext(gl);
   context.projectionMatrix = mat4.perspective(mat4.create(), 30, canvasWidth / canvasHeight, 0.01, 1000);
 
   let distance = cameraStartPos[1] - waterHeight;
   let reversedCameraPosition = [cameraStartPos[0],cameraStartPos[1] - distance * 2,cameraStartPos[2]];//Reverse the cameraheight for correct reflection
   let lookAtMatrix = mat4.lookAt(mat4.create(), reversedCameraPosition, [0,0,0], [0,1,0]);
-  let mouseRotateMatrix = mat4.multiply(mat4.create(),
-                          glm.rotateX(-camera.rotation.y),//reverse cameratilt for correct reflection
-                          glm.rotateY(camera.rotation.x));
+  let mouseRotateMatrix = mat4.multiply(mat4.create(), glm.rotateX(-camera.rotation.y), glm.rotateY(camera.rotation.x));
 
   context.viewMatrix = mat4.multiply(mat4.create(), lookAtMatrix, mouseRotateMatrix);
   context.invViewMatrix = mat4.invert(mat4.create(), context.viewMatrix);
 
-
-
   enableAboveWaterClipping(singleShaderProgram);
   enableAboveWaterClipping(textureShaderProgram);
-  //enableAboveWaterClipping(skyBoxShaderProgram);
+
   gl.useProgram(singleShaderProgram);
   gl.uniform3fv( gl.getUniformLocation(singleShaderProgram, "u_reverseLightDirection"),  reverseSunDirection);
   gl.uniform1i( gl.getUniformLocation(singleShaderProgram, "u_diffuseTexEnabled"), 0);
@@ -691,7 +826,6 @@ function RenderWaterReflectionTexture(){
   root.render(context);
   disableWaterClipping(singleShaderProgram);
   disableWaterClipping(textureShaderProgram);
-  //disableWaterClipping(skyBoxShaderProgram);
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 }
 
@@ -703,16 +837,15 @@ function RenderWaterRefractionTexture(context){
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   enableUnderWaterClipping(singleShaderProgram);
   enableUnderWaterClipping(textureShaderProgram);
-  //enableUnderWaterClipping(skyBoxShaderProgram);
   gl.useProgram(textureShaderProgram);
   gl.uniform3fv( gl.getUniformLocation(textureShaderProgram, "u_reverseLightDirection"), reverseSunDirection);
   root.render(context);
   disableWaterClipping(singleShaderProgram);
   disableWaterClipping(textureShaderProgram);
-  //disableWaterClipping(skyBoxShaderProgram);
 
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 }
+
 function setUpWaterUniforms(timeInMilliseconds){
   gl.uniform1f(gl.getUniformLocation(waterShaderProgram, 'u_time'), timeInMilliseconds/1000.0);
   // TODO: set sun direction (weiß am wasser)
