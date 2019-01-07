@@ -26,8 +26,8 @@ var root = null;
 var translateLight;
 var rotateLight;
 var lightNode;
-var heliNode;
-var heliRotorNode;
+var heliTransformationNode;
+var rotorTransformationNode;
 var translate;
 var textureNode;
 var yacht1TransformationNode;
@@ -396,7 +396,7 @@ function createSceneGraph(gl, resources) {
   }
 
     {
-        let scanTexture = new TextureSGNode(textures.marmor, 0, 'u_diffuseTex',new RenderSGNode(resources.scan));
+        let scanTexture = new TextureSGNode(resources.texture_yacht, 0, 'u_diffuseTex',new RenderSGNode(resources.scan));
 
         let scanMaterial = new MaterialSGNode( scanTexture);
         //gold
@@ -412,7 +412,7 @@ function createSceneGraph(gl, resources) {
     }
 
     {
-        let scanTexture = new TextureSGNode(textures.marmor, 0, 'u_diffuseTex',new RenderSGNode(resources.scan2));
+        let scanTexture = new TextureSGNode(resources.texture_yacht, 0, 'u_diffuseTex',new RenderSGNode(resources.scan2));
 
         let scanMaterial = new MaterialSGNode( scanTexture);
         //gold
@@ -428,7 +428,7 @@ function createSceneGraph(gl, resources) {
     }
 
     {
-        let scanTexture = new TextureSGNode(textures.marmor, 0, 'u_diffuseTex',new RenderSGNode(resources.scan3));
+        let scanTexture = new TextureSGNode(resources.texture_yacht, 0, 'u_diffuseTex',new RenderSGNode(resources.scan3));
 
         let scanMaterial = new MaterialSGNode( scanTexture);
         //gold
@@ -446,14 +446,14 @@ function createSceneGraph(gl, resources) {
   {
     let heliTextureNode = new TextureSGNode(resources.heli_tex, 0, 'u_diffuseTex', new RenderSGNode(resources.heli_model));
     let heliMaterialNode = new MaterialSGNode(heliTextureNode);
-    let heliTransformationNode = new TransformationSGNode(glm.transform({ translate: [planeX,planeY, planeZ], rotateX : -90, scale: helisize }),  [heliMaterialNode]);
+    heliTransformationNode = new TransformationSGNode(glm.transform({ translate: [planeX,planeY, planeZ], rotateX : -90, scale: helisize }),  [heliMaterialNode]);
     root.append(heliTransformationNode);
   }
 
   {
     let rotorTextureNode = new TextureSGNode(resources.heli_tex, 0, 'u_diffuseTex',new RenderSGNode(resources.heli_main_rotor));
     let rotorMaterialNode = new MaterialSGNode(rotorTextureNode);
-    let rotorTransformationNode = new TransformationSGNode(glm.transform({ translate: [planeX,planeY, planeZ], rotateX : -90, scale: helisize }),  [rotorMaterialNode]);
+    rotorTransformationNode = new TransformationSGNode(glm.transform({ translate: [planeX,planeY, planeZ], rotateX : -90, scale: helisize }),  [rotorMaterialNode]);
     root.append(rotorTransformationNode);
   }
 
@@ -1208,8 +1208,8 @@ function drivePlane(timeInMilliSeconds) {
         }
     }
 
-    heliNode.matrix = glm.transform({translate: [planeX, planeY, planeZ], rotateX : -90, rotateZ: planeRotateY, scale: helisize});
-    heliRotorNode.matrix = glm.transform({translate: [planeX,planeY, planeZ], rotateX : -90, scale: 1, rotateZ: timeInMilliSeconds*timeInMilliSeconds, scale: helisize});
+    heliTransformationNode.matrix = glm.transform({translate: [planeX, planeY, planeZ], rotateX : -90, rotateZ: planeRotateY, scale: helisize});
+    rotorTransformationNode.matrix = glm.transform({translate: [planeX,planeY, planeZ], rotateX : -90, scale: 1, rotateZ: timeInMilliSeconds*timeInMilliSeconds, scale: helisize});
 }
 
 function calcProzent(timeInMilliseconds, keyFrame){
