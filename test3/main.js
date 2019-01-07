@@ -8,10 +8,8 @@ const camera = {
 };
 
 //camera perspective
-//let eye = [-60,23.5,87];
-//let center = [-60,18,80];
-let eye = [-30,18,30];
-let center = [58,18,60];
+let eye = [-60,23.5,87];
+let center = [-60,18,80];
 
 //plane perspective
 let planeX = -60;
@@ -62,7 +60,7 @@ var lastTimeMillis = 0;
 var clockTime = 0;
 var color = [0.8, 0.25, 0.25, 1.0];
 var position = [2.0, 1.5, 2.0];
-var size = 3;
+var size = 2.5;
 
 // Create WebGL buffers
 var lifetimeBuffer = null;
@@ -129,6 +127,8 @@ loadResources({
     model_water: '../models/water.obj',
     texture_water: '../textures/waterTexture.png',
 
+    model_bowl: '../models/fire_bowl.obj',
+
     // fire
     texture_fire: '../textures/fire.jpg',
 
@@ -180,7 +180,7 @@ function init(resources) {
     // ??
     gl.enable(gl.BLEND);
 }
-
+let bowlNode;
 function createSceneGraph(gl, resources) {
   // create root node
   const root = new ShaderSGNode(textureShaderProgram);
@@ -239,6 +239,60 @@ function createSceneGraph(gl, resources) {
   }
 
   {
+    let bowlTexture = new TextureSGNode(resources.texture_yacht, 0, 'u_diffuseTex',new RenderSGNode(resources.model_bowl));
+    let bowlMaterial = new MaterialSGNode(bowlTexture);
+    let bowlNode = new TransformationSGNode(glm.transform({ translate: [55, 4, 65], rotateY: 0, rotateX : 0, scale: 2 }),  [
+      bowlMaterial
+    ]);
+    root.append(bowlNode);
+  }
+
+  {
+    let bowlTexture = new TextureSGNode(resources.texture_yacht, 0, 'u_diffuseTex',new RenderSGNode(resources.model_bowl));
+    let bowlMaterial = new MaterialSGNode(bowlTexture);
+    let bowlNode = new TransformationSGNode(glm.transform({ translate: [57, 4, 57], rotateY: 0, rotateX : 0, scale: 2 }),  [
+      bowlMaterial
+    ]);
+    root.append(bowlNode);
+  }
+
+  {
+    let bowlTexture = new TextureSGNode(resources.texture_yacht, 0, 'u_diffuseTex',new RenderSGNode(resources.model_bowl));
+    let bowlMaterial = new MaterialSGNode(bowlTexture);
+    let bowlNode = new TransformationSGNode(glm.transform({ translate: [62, 4, 42], rotateY: 0, rotateX : 0, scale: 2 }),  [
+      bowlMaterial
+    ]);
+    root.append(bowlNode);
+  }
+
+  {
+    let bowlTexture = new TextureSGNode(resources.texture_yacht, 0, 'u_diffuseTex',new RenderSGNode(resources.model_bowl));
+    let bowlMaterial = new MaterialSGNode(bowlTexture);
+    let bowlNode = new TransformationSGNode(glm.transform({ translate: [63, 4, 31], rotateY: 0, rotateX : 0, scale: 2 }),  [
+      bowlMaterial
+    ]);
+    root.append(bowlNode);
+  }
+
+  {
+    let bowlTexture = new TextureSGNode(resources.texture_yacht, 0, 'u_diffuseTex',new RenderSGNode(resources.model_bowl));
+    let bowlMaterial = new MaterialSGNode(bowlTexture);
+    let bowlNode = new TransformationSGNode(glm.transform({ translate: [66, 4, 14.5], rotateY: 0, rotateX : 0, scale: 2 }),  [
+      bowlMaterial
+    ]);
+    root.append(bowlNode);
+  }
+
+  {
+    let bowlTexture = new TextureSGNode(resources.texture_yacht, 0, 'u_diffuseTex',new RenderSGNode(resources.model_bowl));
+    let bowlMaterial = new MaterialSGNode(bowlTexture);
+    let bowlNode = new TransformationSGNode(glm.transform({ translate: [67, 4, 7], rotateY: 0, rotateX : 0, scale: 2 }),  [
+     bowlMaterial
+    ]);
+    root.append(bowlNode);
+  }
+
+  {
     let sophieTexture = new TextureSGNode(resources.texture_yacht, 0, 'u_diffuseTex',new RenderSGNode(resources.sophie));
     let sophieMaterial = new MaterialSGNode(sophieTexture);
     let sophieNode = new TransformationSGNode(glm.transform({ translate: [58,-5,60], rotateY: 0, rotateX : 272, rotateZ: 85, scale: 45.05 }),  [
@@ -250,7 +304,7 @@ function createSceneGraph(gl, resources) {
   {
     let chrisiTexture = new TextureSGNode(resources.texture_yacht, 0, 'u_diffuseTex',new RenderSGNode(resources.chrisi));
     let chrisiMaterial = new MaterialSGNode( chrisiTexture);
-    let chrisiNode = new TransformationSGNode(glm.transform({ translate: [71,-0.5,11], rotateY: 0 ,rotateX : 270, rotateZ: 95, scale: 45.05 }),  [
+    let chrisiNode = new TransformationSGNode(glm.transform({ translate: [71,-1,11], rotateY: 0 ,rotateX : 270, rotateZ: 95, scale: 45.05 }),  [
       chrisiMaterial
     ]);
     root.append(chrisiNode);
@@ -259,7 +313,7 @@ function createSceneGraph(gl, resources) {
   {
     let siegiTexture = new TextureSGNode(resources.texture_yacht, 0, 'u_diffuseTex',new RenderSGNode(resources.siegi));
     let siegiMaterial = new MaterialSGNode(siegiTexture);
-    let siegiNode = new TransformationSGNode(glm.transform({ translate: [67, 0, 36], rotateY: 0, rotateX : 270, rotateZ: 75, scale: 45.05 }),  [
+    let siegiNode = new TransformationSGNode(glm.transform({ translate: [67, 0.5, 36], rotateY: 0, rotateX : 270, rotateZ: 75, scale: 45.05 }),  [
       siegiMaterial
     ]);
     root.append(siegiNode);
@@ -309,14 +363,13 @@ function render(timeInMilliSeconds){
     lastTimeMillis = timeInMilliSeconds;
     clockTime += delta / 1000;
 
-    //drivePlane(timeInMilliSeconds);
+    drivePlane(timeInMilliSeconds);
 
     checkForWindowResize(gl);
 
     // TODO: boot spiegelt sich so schiach!
     RenderWaterReflectionTexture();
 
-    //drivePlane(timeInMilliSeconds);
 
     //setup viewport
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
