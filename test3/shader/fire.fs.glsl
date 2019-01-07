@@ -17,12 +17,7 @@ void main (void) {
   float offsetX = floor(mod(offset, 4.0)) / 4.0;
   float offsetY = 0.75 - floor(offset / 4.0) / 4.0;
 
-  vec4 texColor = texture2D(
-    u_particleAtlas,
-    vec2(
-      (vTextureCoords.x / 4.0) + offsetX,
-      (vTextureCoords.y / 4.0) + offsetY
-  ));
+  vec4 texColor = texture2D(u_particleAtlas, vec2((vTextureCoords.x / 4.0) + offsetX, (vTextureCoords.y / 4.0) + offsetY));
   gl_FragColor = uColor * texColor;
 
   gl_FragColor.a *= vLifetime;

@@ -11,34 +11,20 @@ attribute vec3 aVelocity;
 uniform mat4 u_projection;
 uniform mat4 u_modelView;
 
-uniform bool uRepeating;
-
 varying float vLifetime;
 varying vec2 vTextureCoords;
 
 void main (void) {
-    float time = uTime;
-    if (uRepeating) {
-        time = mod(uTime, aLifetime);
-    }
+    float time = mod(uTime, aLifetime);
 
     vLifetime = 1.3 - (time / aLifetime);
     vLifetime = clamp(vLifetime, 0.0, 1.0);
     float size = (vLifetime * vLifetime) * uSize;
 
     vec3 velocity = aVelocity;
-
-    vec4 position = vec4(
-        uFirePos + aCenterOffset + (time * velocity),
-        1.0
-    );
-
-    vec3 cameraRight = vec3(
-        u_modelView[0].x, u_modelView[1].x, u_modelView[2].x
-    );
-    vec3 cameraUp = vec3(
-        u_modelView[0].y, u_modelView[1].y, u_modelView[2].y
-    );
+    vec4 position = vec4(uFirePos + aCenterOffset + (time * velocity), 1.0);
+    vec3 cameraRight = vec3(u_modelView[0].x, u_modelView[1].x, u_modelView[2].x);
+    vec3 cameraUp = vec3(u_modelView[0].y, u_modelView[1].y, u_modelView[2].y);
 
     position.xyz += (cameraRight * aTriCorner.x * size) + (cameraUp * aTriCorner.y * size);
 

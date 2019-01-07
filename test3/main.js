@@ -127,7 +127,6 @@ loadResources({
 
     // water
     model_water: '../models/water.obj',
-    texture_water: '../textures/waterTexture.png',
 
     // fire
     texture_fire: '../textures/fire.jpg',
@@ -182,6 +181,7 @@ function init(resources) {
 }
 
 function createSceneGraph(gl, resources) {
+
   // create root node
   const root = new ShaderSGNode(textureShaderProgram);
 
@@ -190,11 +190,8 @@ function createSceneGraph(gl, resources) {
 
   {
     let waterShaderNode = new ShaderSGNode(waterShaderProgram);
-    let waterTextureNode = new TextureSGNode(resources.texture_water, 0, 'u_diffuseTex', new RenderSGNode(resources.model_water));
-    let waterTransformationNode = new TransformationSGNode(glm.transform({ translate: [0,0,0], rotateZ: -180, scale: 3}), [waterTextureNode]);
-
-    // let waterRenderNode = new RenderSGNode(resources.model_water);
-    // let waterTransformationNode = new TransformationSGNode(glm.transform({ translate: [0,0,0], rotateZ: -180, scale: 3}), [waterRenderNode]);
+    let waterRenderNode = new RenderSGNode(resources.model_water);
+    let waterTransformationNode = new TransformationSGNode(glm.transform({ translate: [0,0,0], rotateZ: -180, scale: 3}), [waterRenderNode]);
     waterShaderNode.append(waterTransformationNode);
     root.append(waterShaderNode);
   }
@@ -304,7 +301,7 @@ function createSceneGraph(gl, resources) {
 }
 
 function render(timeInMilliSeconds){
-    // compute delta between frames
+
     let delta = timeInMilliSeconds - lastTimeMillis;
     lastTimeMillis = timeInMilliSeconds;
     clockTime += delta / 1000;
@@ -313,7 +310,6 @@ function render(timeInMilliSeconds){
 
     checkForWindowResize(gl);
 
-    // TODO: boot spiegelt sich so schiach!
     RenderWaterReflectionTexture();
 
     //drivePlane(timeInMilliSeconds);
@@ -328,18 +324,13 @@ function render(timeInMilliSeconds){
     context.projectionMatrix = mat4.perspective(mat4.create(), 30, gl.drawingBufferWidth / gl.drawingBufferHeight, 0.01, 1000);
     //very primitive camera implementation
     let lookAtMatrix = mat4.lookAt(mat4.create(), eye, center, [0,-1,0]);
-    let mouseRotateMatrix = mat4.multiply(mat4.create(),
-        glm.rotateX(camera.rotation.y),
-        glm.rotateY(camera.rotation.x));
+    let mouseRotateMatrix = mat4.multiply(mat4.create(), glm.rotateX(camera.rotation.y), glm.rotateY(camera.rotation.x));
     context.viewMatrix = mat4.multiply(mat4.create(), lookAtMatrix, mouseRotateMatrix);
 
     //get inverse view matrix to allow computing eye-to-light matrix
     context.invViewMatrix = mat4.invert(mat4.create(), context.viewMatrix);
 
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-    //get inverse view matrix to allow computing eye-to-light matrix
-    context.invViewMatrix = mat4.invert(mat4.create(), context.viewMatrix);
 
     RenderWaterRefractionTexture(context);
 
@@ -360,6 +351,7 @@ function render(timeInMilliSeconds){
     unbindWaterTextures();
 
     // fire
+    gl.useProgram(fireShaderProgram);
     enableFireVertexAttributes();
     setUpFireUniforms(delta, context);
     fireShaderNode.render(context);
@@ -512,23 +504,14 @@ function setUpFireUniforms(delta, context) {
 
     clockTime += delta / 1000;
 
-    // Disable to get particle system to work
     gl.depthMask(false);
-
-    // Additive blending
     gl.blendFunc(gl.ONE, gl.ONE);
 
-   //gl.uniform1f(gl.getUniformLocation(fireShaderNode.program, 'uTime'), clockTime);
     gl.uniform1f(gl.getUniformLocation(fireShaderNode.program, 'uTimeFrag'), clockTime);
-    gl.uniform1i(gl.getUniformLocation(fireShaderNode.program, 'uUseBillboarding'), true);
-    gl.uniform1i(gl.getUniformLocation(fireShaderNode.program, 'uRepeating'), true);
-
     gl.uniform3fv(gl.getUniformLocation(fireShaderNode.program, 'uFirePos'), position);
     gl.uniform4fv(gl.getUniformLocation(fireShaderNode.program, 'uColor'), color);
     gl.uniform1f(gl.getUniformLocation(fireShaderNode.program, 'uSize'), size);
 }
-
-
 
 //camera control
 function initInteraction(canvas) {
@@ -583,55 +566,11 @@ function initInteraction(canvas) {
 }
 
 
+// -----------------------------------------------------------
+// ----- WATER ------------------------------------------------
+// -----------------------------------------------------------
 
-
-//a scene graph node for setting environment mapping parameters
-class EnvironmentSGNode extends SGNode {
-
-  constructor(envtexture, textureunit, doReflect, doRefract, useFresnel, children ) {
-      super(children);
-      this.envtexture = envtexture;
-      this.textureunit = textureunit;
-      this.doReflect = doReflect;
-      this.doRefract = doRefract;
-      this.useFresnel = useFresnel;
-      this.n2 = 1.55; // glass
-      this.n1 = 1.0;  // air
-  }
-
-  render(context)
-  {
-    //set additional shader parameters
-    let invView3x3 = mat3.fromMat4(mat3.create(), context.invViewMatrix); //reduce to 3x3 matrix since we only process direction vectors (ignore translation)
-    gl.uniformMatrix3fv(gl.getUniformLocation(context.shader, 'u_invView3x3'), false, invView3x3);
-    gl.uniform1i(gl.getUniformLocation(context.shader, 'u_texCube'), this.textureunit);
-    gl.uniform1i(gl.getUniformLocation(context.shader, 'u_useReflection'), this.doReflect);
-    gl.uniform1i(gl.getUniformLocation(context.shader, 'u_useRefraction'), this.doRefract);
-    gl.uniform1i(gl.getUniformLocation(context.shader, 'u_useFresnel'), this.useFresnel);
-    gl.uniform1f(gl.getUniformLocation(context.shader, 'u_refractionEta'), this.n1/this.n2);
-    gl.uniform1f(gl.getUniformLocation(context.shader, 'u_fresnelR0'), Math.pow((this.n1-this.n2)/(this.n1+this.n2),2));
-
-
-    //activate and bind texture
-    gl.activeTexture(gl.TEXTURE0 + this.textureunit);
-    gl.bindTexture(gl.TEXTURE_CUBE_MAP, this.envtexture);
-
-    //render children
-    super.render(context);
-
-    //clean up
-    gl.activeTexture(gl.TEXTURE0 + this.textureunit);
-    gl.bindTexture(gl.TEXTURE_CUBE_MAP, null);
-  }
-}
-
-
-
-///////////////////////////////////////////////////////////////////
-// WATER /////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////
-
-function createWater(gl, resources){
+function createWater(gl, resources) {
 
   let waterShaderNode = new ShaderSGNode(waterShaderProgram);
   let waterRenderNode = new RenderSGNode(resources.model_water);
@@ -640,9 +579,9 @@ function createWater(gl, resources){
   return waterShaderNode;
 }
 
-function initWaterReflectionFramebuffer(){
-  var depthTextureExt = gl.getExtension("WEBGL_depth_texture");
-  if(!depthTextureExt) { alert('No depth texture support!!!'); return; }
+function initWaterReflectionFramebuffer() {
+
+  gl.getExtension("WEBGL_depth_texture");
 
   waterReflectionFramebuffer = gl.createFramebuffer();
   gl.bindFramebuffer(gl.FRAMEBUFFER, waterReflectionFramebuffer);
@@ -666,14 +605,12 @@ function initWaterReflectionFramebuffer(){
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, waterReflectionDepthTexture);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT, canvasWidth, canvasHeight, 0, gl.DEPTH_COMPONENT, gl.UNSIGNED_SHORT, null);
   gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, waterReflectionDepthTexture ,0);
-
-  if(gl.checkFramebufferStatus(gl.FRAMEBUFFER)!=gl.FRAMEBUFFER_COMPLETE)
-    {alert('Framebuffer incomplete!');}
   gl.bindTexture(gl.TEXTURE_2D, null);
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 }
 
-function initWaterRefractionFramebuffer(){
+function initWaterRefractionFramebuffer() {
+
   waterRefractionFramebuffer = gl.createFramebuffer();
   gl.bindFramebuffer(gl.FRAMEBUFFER, waterRefractionFramebuffer);
 
@@ -682,7 +619,8 @@ function initWaterRefractionFramebuffer(){
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, waterRefractionColorTexture);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, canvasWidth, canvasHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
   gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, waterRefractionColorTexture, 0);
 
@@ -695,9 +633,6 @@ function initWaterRefractionFramebuffer(){
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, waterRefractionDepthTexture);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT, canvasWidth, canvasHeight, 0, gl.DEPTH_COMPONENT, gl.UNSIGNED_SHORT, null);
   gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, waterRefractionDepthTexture ,0);
-
-  if(gl.checkFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE)
-    {alert('Framebuffer incomplete!');}
   gl.bindTexture(gl.TEXTURE_2D, null);
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 }
@@ -708,6 +643,7 @@ function initWaveTexture(){
     waveImage.onload = function(resources) { handleTextureLoaded(waveImage, waveTexture); }
     waveImage.src = '../textures/waterNormal2.jpg';
 }
+
 function initHeightMapTexture(){
     heightTexture = gl.createTexture();
     heightImage = new Image();
@@ -725,32 +661,11 @@ function handleTextureLoaded(image, texture) {
   gl.generateMipmap(gl.TEXTURE_2D);
   gl.bindTexture(gl.TEXTURE_2D, null);
 }
-/*
-function enableAboveWaterClipping(shader){
-  gl.useProgram(shader);
-  gl.uniform1i(gl.getUniformLocation(shader, 'enableClipping'),1);
-  gl.uniform1i(gl.getUniformLocation(shader, 'clipHigher'), 0);
-  gl.uniform1f(gl.getUniformLocation(shader, 'clipDistance'), waterHeight);
-}
-
-function enableUnderWaterClipping(shader){
-  gl.useProgram(shader);
-  gl.uniform1i(gl.getUniformLocation(shader, 'enableClipping'),1);
-  gl.uniform1i(gl.getUniformLocation(shader, 'clipHigher'), 1);
-  gl.uniform1f(gl.getUniformLocation(shader, 'clipDistance'), waterHeight);
-}
-
-
-function disableWaterClipping(shader){
-  gl.useProgram(shader);
-  gl.uniform1i(gl.getUniformLocation(shader, 'enableClipping'),0);
-}*/
 
 function RenderWaterReflectionTexture(){
 
   gl.bindFramebuffer(gl.FRAMEBUFFER, waterReflectionFramebuffer);
 
-  //gl.viewport(0, 0, canvasWidth, canvasHeight);
   gl.clearColor(0,0, 0, 0);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -765,9 +680,6 @@ function RenderWaterReflectionTexture(){
   context.viewMatrix = mat4.multiply(mat4.create(), lookAtMatrix, mouseRotateMatrix);
   context.invViewMatrix = mat4.invert(mat4.create(), context.viewMatrix);
 
-  //enableAboveWaterClipping(singleShaderProgram);
-  //enableAboveWaterClipping(textureShaderProgram);
-
   gl.useProgram(singleShaderProgram);
   gl.uniform3fv(gl.getUniformLocation(singleShaderProgram, "u_reverseLightDirection"),  reverseSunDirection);
   gl.uniform1i(gl.getUniformLocation(singleShaderProgram, "u_diffuseTexEnabled"), 0);
@@ -775,8 +687,6 @@ function RenderWaterReflectionTexture(){
   gl.useProgram(textureShaderProgram);
   gl.uniform3fv(gl.getUniformLocation(textureShaderProgram, "u_reverseLightDirection"), reverseSunDirection);
   root.render(context);
-  //disableWaterClipping(singleShaderProgram);
-  //disableWaterClipping(textureShaderProgram);
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 }
 
@@ -785,32 +695,26 @@ function RenderWaterRefractionTexture(context){
 
   gl.viewport(0, 0, canvasWidth, canvasHeight);
   gl.clearColor(0, 0, 0, 0);
+
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-  //(singleShaderProgram);
-  //enableUnderWaterClipping(textureShaderProgram);
+
   gl.useProgram(textureShaderProgram);
   gl.uniform3fv( gl.getUniformLocation(textureShaderProgram, "u_reverseLightDirection"), reverseSunDirection);
+
   root.render(context);
-  //disableWaterClipping(singleShaderProgram);
-  //disableWaterClipping(textureShaderProgram);
 
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 }
 
 function setUpWaterUniforms(timeInMilliseconds){
   gl.uniform1f(gl.getUniformLocation(waterShaderProgram, 'u_time'), timeInMilliseconds/1000.0);
-  // TODO: set sun direction (weiß am wasser)
-  //gl.uniform3fv(gl.getUniformLocation(waterShaderProgram, 'u_sunDirection'), [1,1,0]);
   gl.uniform3fv(gl.getUniformLocation(waterShaderProgram, 'u_sunDirection'), [1,1,0]);
   gl.uniform3fv(gl.getUniformLocation(waterShaderProgram, 'u_sunColor'), [1,1,1]);
   gl.uniform3fv(gl.getUniformLocation(waterShaderProgram, 'u_horizonColor'), [0.6,0.6,0.6]);
   gl.uniform3fv(gl.getUniformLocation(waterShaderProgram, 'u_zenithColor'), [0.6,0.6,0.6]);
   gl.uniform1f(gl.getUniformLocation(waterShaderProgram, 'u_atmosphereDensity'), 0.000025);
-  //gl.uniform1f(gl.getUniformLocation(waterShaderProgram, 'u_fogDensity'), 0.003);
-  //gl.uniform1f(gl.getUniformLocation(waterShaderProgram, 'u_fogFalloff'), 20.0);
-  //gl.uniform3fv(gl.getUniformLocation(waterShaderProgram, 'u_fogColor'), [0.8,0.8,0.9]);
-
 }
+
 function bindWaterTextures(){
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, waveTexture);
@@ -825,6 +729,7 @@ function bindWaterTextures(){
   gl.bindTexture(gl.TEXTURE_2D, heightTexture);
   gl.uniform1i(gl.getUniformLocation(waterShaderProgram, 'u_heightSampler'),3);
 }
+
 function unbindWaterTextures(){
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, null);
