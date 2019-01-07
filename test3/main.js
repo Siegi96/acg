@@ -8,9 +8,10 @@ const camera = {
 };
 
 //camera perspective
-let eye = [-60,23.5,87];
-let center = [-60,18,80];
-
+//let eye = [-60,23.5,87];
+//let center = [-60,18,80];
+let eye = [-30,18,30];
+let center = [58,18,60];
 
 //plane perspective
 let planeX = -60;
@@ -29,7 +30,6 @@ var lightNode;
 var heliTransformationNode;
 var rotorTransformationNode;
 var translate;
-var textureNode;
 var yacht1TransformationNode;
 var yacht2TransformationNode;
 var yacht3TransformationNode;
@@ -143,14 +143,9 @@ loadResources({
     heli_main_rotor: '../models/heli/main_rotor.obj',
     heli_tex: '../models/heli/fuselage.jpg',
 
-    scan: '../models/sophie.obj',
-    scan_tex: '../textures/boat_texture.jpg',
-
-    scan2: '../models/chrisi.obj',
-    scan2_tex: '../textures/boat_texture.jpg',
-
-    scan3: '../models/siegi.obj',
-    scan3_tex: '../textures/boat_texture.jpg',
+    sophie: '../models/sophie.obj',
+    chrisi: '../models/chrisi.obj',
+    siegi: '../models/siegi.obj',
 
     // boat
     model_yacht: '../models/Yacht.obj',
@@ -192,7 +187,7 @@ function init(resources) {
     waterShaderProgram = createProgram(gl, resources.vs_water, resources.fs_water);
 
     // init skybox
-    cubemap =  [resources.skybox_pos_x, resources.skybox_neg_x, resources.skybox_pos_y, resources.skybox_neg_y, resources.skybox_pos_z, resources.skybox_neg_z,false]
+    let cubemap =  [resources.skybox_pos_x, resources.skybox_neg_x, resources.skybox_pos_y, resources.skybox_neg_y, resources.skybox_pos_z, resources.skybox_neg_z,false]
     initCubeMap(resources,cubemap);
 
     // init water
@@ -208,11 +203,9 @@ function init(resources) {
     root = createSceneGraph(gl, resources);
 
     gl.enable(gl.BLEND);
-
 }
 
 function createFire(gl, resources) {
-
   var numParticles = 1000;
   var lifetimes = [];
   var triCorners = [];
@@ -285,19 +278,19 @@ function setupParticleProgram() {
     gl.useProgram(fireShaderNode.program);
     var lifetimeAttrib = gl.getAttribLocation(
         fireShaderNode.program, 'aLifetime'
-    )
+    );
     var texCoordAttrib = gl.getAttribLocation(
         fireShaderNode.program, 'aTextureCoords'
-    )
+    );
     var triCornerAttrib = gl.getAttribLocation(
         fireShaderNode.program, 'aTriCorner'
-    )
+    );
     var centerOffsetAttrib = gl.getAttribLocation(
         fireShaderNode.program, 'aCenterOffset'
-    )
+    );
     var velocityAttrib = gl.getAttribLocation(
         fireShaderNode.program, 'aVelocity'
-    )
+    );
     gl.enableVertexAttribArray(lifetimeAttrib)
     gl.enableVertexAttribArray(texCoordAttrib)
     gl.enableVertexAttribArray(triCornerAttrib)
@@ -333,9 +326,7 @@ function createWater(gl, resources){
   return waterShaderNode;
 }
 
-
 function createSceneGraph(gl, resources) {
-
   // create root node
   const root = new ShaderSGNode(textureShaderProgram);
 
@@ -351,7 +342,6 @@ function createSceneGraph(gl, resources) {
   }
 
   // create skybox node
-
   {
     let skyboxShaderNode = new ShaderSGNode(skyboxShaderProgram);
     let skyboxEnvironmentNode = new EnvironmentSGNode(skyboxtexture,4,false,false,false, new RenderSGNode(makeSphere(200)));
@@ -360,14 +350,11 @@ function createSceneGraph(gl, resources) {
   }
 
   // create fire node
-
   createFire(gl, resources);
-
   {
     fireShaderNode = new ShaderSGNode(fireShaderProgram);
 
-    let pos = [[70, 2, 110], [70, 2, 100], [70, 2, 90], [70, 2, 95], [70, 2, 79], [70, 2, 30]];
-
+    let pos = [[53, 4, 63], [55, 4, 55], [60, 4, 40], [61, 4, 30], [64, 4, 12.5], [64, 4, 6]];
     for (var i=0; i<pos.length; i++) {
       let fireTextureNode = new TextureSGNode(resources.texture_fire, 0, 'u_particleAtlas', new RenderSGNode(makeRect(1.0, 1.0, this.vertexIndices)));
       for (var j=0; j<5; j++) {
@@ -395,53 +382,32 @@ function createSceneGraph(gl, resources) {
     root.append(rotateLight);
   }
 
-    {
-        let scanTexture = new TextureSGNode(resources.texture_yacht, 0, 'u_diffuseTex',new RenderSGNode(resources.scan));
+  {
+    let sophieTexture = new TextureSGNode(resources.texture_yacht, 0, 'u_diffuseTex',new RenderSGNode(resources.sophie));
+    let sophieMaterial = new MaterialSGNode(sophieTexture);
+    let sophieNode = new TransformationSGNode(glm.transform({ translate: [58,-5,60], rotateY: 0, rotateX : 272, rotateZ: 85, scale: 45.05 }),  [
+      sophieMaterial
+    ]);
+    root.append(sophieNode);
+  }
 
-        let scanMaterial = new MaterialSGNode( scanTexture);
-        //gold
-        scanMaterial.ambient = [0.0, 0.0, 0.0, 1];
-        scanMaterial.diffuse = [0.25, 0.13, 0.1, 1];
-        scanMaterial.specular = [0.5, 0.5, 0.5, 1];
-        scanMaterial.shininess = 4.0;
+  {
+    let chrisiTexture = new TextureSGNode(resources.texture_yacht, 0, 'u_diffuseTex',new RenderSGNode(resources.chrisi));
+    let chrisiMaterial = new MaterialSGNode( chrisiTexture);
+    let chrisiNode = new TransformationSGNode(glm.transform({ translate: [71,-0.5,11], rotateY: 0 ,rotateX : 270, rotateZ: 95, scale: 45.05 }),  [
+      chrisiMaterial
+    ]);
+    root.append(chrisiNode);
+  }
 
-        let scanNode = new TransformationSGNode(glm.transform({ translate: [58,-5,60], rotateY: 0, rotateX : 272, rotateZ: 85, scale: 45.05 }),  [
-            scanMaterial
-        ]);
-        root.append(scanNode);
-    }
-
-    {
-        let scanTexture = new TextureSGNode(resources.texture_yacht, 0, 'u_diffuseTex',new RenderSGNode(resources.scan2));
-
-        let scanMaterial = new MaterialSGNode( scanTexture);
-        //gold
-        scanMaterial.ambient = [0.0, 0.0, 0.0, 1];
-        scanMaterial.diffuse = [0.25, 0.13, 0.1, 1];
-        scanMaterial.specular = [0.5, 0.5, 0.5, 1];
-        scanMaterial.shininess = 4.0;
-
-        let scanNode = new TransformationSGNode(glm.transform({ translate: [71,-0.5,11], rotateY: 0 ,rotateX : 270, rotateZ: 95, scale: 45.05 }),  [
-            scanMaterial
-        ]);
-        root.append(scanNode);
-    }
-
-    {
-        let scanTexture = new TextureSGNode(resources.texture_yacht, 0, 'u_diffuseTex',new RenderSGNode(resources.scan3));
-
-        let scanMaterial = new MaterialSGNode( scanTexture);
-        //gold
-        scanMaterial.ambient = [0.0, 0.0, 0.0, 1];
-        scanMaterial.diffuse = [0.25, 0.13, 0.1, 1];
-        scanMaterial.specular = [0.5, 0.5, 0.5, 1];
-        scanMaterial.shininess = 4.0;
-
-        let scanNode = new TransformationSGNode(glm.transform({ translate: [67, 0, 36], rotateY: 0, rotateX : 270, rotateZ: 75, scale: 45.05 }),  [
-            scanMaterial
-        ]);
-        root.append(scanNode);
-    }
+  {
+    let siegiTexture = new TextureSGNode(resources.texture_yacht, 0, 'u_diffuseTex',new RenderSGNode(resources.siegi));
+    let siegiMaterial = new MaterialSGNode(siegiTexture);
+    let siegiNode = new TransformationSGNode(glm.transform({ translate: [67, 0, 36], rotateY: 0, rotateX : 270, rotateZ: 75, scale: 45.05 }),  [
+      siegiMaterial
+    ]);
+    root.append(siegiNode);
+  }
 
   {
     let heliTextureNode = new TextureSGNode(resources.heli_tex, 0, 'u_diffuseTex', new RenderSGNode(resources.heli_model));
@@ -457,55 +423,37 @@ function createSceneGraph(gl, resources) {
     root.append(rotorTransformationNode);
   }
 
-    {
-        var yachtTextureNode = new TextureSGNode(resources.texture_yacht, 0, 'u_diffuseTex', new RenderSGNode(resources.model_yacht));
-        let yachtMaterialNode = new MaterialSGNode(yachtTextureNode);
+  {
+    let yachtTextureNode = new TextureSGNode(resources.texture_yacht, 0, 'u_diffuseTex', new RenderSGNode(resources.model_yacht));
+    let yachtMaterialNode = new MaterialSGNode(yachtTextureNode);
+    yacht1TransformationNode = new TransformationSGNode(glm.transform({ translate: [30, 3.5, -20], scale: 0.1 }),  [yachtMaterialNode]);
+    root.append(yacht1TransformationNode);
+  }
 
-        yachtMaterialNode.ambient = [0.0, 0.0, 0.0, 1];
-        yachtMaterialNode.diffuse = [0.25, 0.13, 0.1, 1];
-        yachtMaterialNode.specular = [0.5, 0.5, 0.5, 1];
-        yachtMaterialNode.shininess = 4.0;
+  {
+    let yachtTextureNode = new TextureSGNode(resources.texture_yacht, 0, 'u_diffuseTex', new RenderSGNode(resources.model_yacht));
+    let yachtMaterialNode = new MaterialSGNode(yachtTextureNode);
+    yacht2TransformationNode = new TransformationSGNode(glm.transform({ translate: [-30, 4.5, -80], scale: 0.13, rotateY: 90 }),  [yachtMaterialNode]);
+    root.append(yacht2TransformationNode);
+  }
 
-        yacht1TransformationNode = new TransformationSGNode(glm.transform({ translate: [30, 3.5, -20], scale: 0.1 }),  [yachtMaterialNode]);
-        root.append(yacht1TransformationNode);
-    }
-
-    {
-        var yachtTextureNode = new TextureSGNode(resources.texture_yacht, 0, 'u_diffuseTex', new RenderSGNode(resources.model_yacht));
-        let yachtMaterialNode = new MaterialSGNode(yachtTextureNode);
-
-        yachtMaterialNode.ambient = [0.0, 0.0, 0.0, 1];
-        yachtMaterialNode.diffuse = [0.25, 0.13, 0.1, 1];
-        yachtMaterialNode.specular = [0.5, 0.5, 0.5, 1];
-        yachtMaterialNode.shininess = 4.0;
-
-        yacht2TransformationNode = new TransformationSGNode(glm.transform({ translate: [-30, 4.5, -80], scale: 0.13, rotateY: 90 }),  [yachtMaterialNode]);
-        root.append(yacht2TransformationNode);
-    }
-
-    {
-        var yachtTextureNode = new TextureSGNode(resources.texture_yacht, 0, 'u_diffuseTex', new RenderSGNode(resources.model_yacht));
-        let yachtMaterialNode = new MaterialSGNode(yachtTextureNode);
-
-        yachtMaterialNode.ambient = [0.0, 0.0, 0.0, 1];
-        yachtMaterialNode.diffuse = [0.25, 0.13, 0.1, 1];
-        yachtMaterialNode.specular = [0.5, 0.5, 0.5, 1];
-        yachtMaterialNode.shininess = 4.0;
-
-        yacht3TransformationNode = new TransformationSGNode(glm.transform({ translate: [-80, 3.5, 20], scale: 0.1, rotateY: 180 }),  [yachtMaterialNode]);
-        root.append(yacht3TransformationNode);
-    }
+  {
+    let yachtTextureNode = new TextureSGNode(resources.texture_yacht, 0, 'u_diffuseTex', new RenderSGNode(resources.model_yacht));
+    let yachtMaterialNode = new MaterialSGNode(yachtTextureNode);
+    yacht3TransformationNode = new TransformationSGNode(glm.transform({ translate: [-80, 3.5, 20], scale: 0.1, rotateY: 180 }),  [yachtMaterialNode]);
+    root.append(yacht3TransformationNode);
+  }
 
   return root;
 }
 
 function render(timeInMilliSeconds){
-// compute delta between frames
+    // compute delta between frames
     let delta = timeInMilliSeconds - lastTimeMillis;
     lastTimeMillis = timeInMilliSeconds;
     clockTime += delta / 1000;
 
-    drivePlane(timeInMilliSeconds);
+    //drivePlane(timeInMilliSeconds);
 
     checkForWindowResize(gl);
 
