@@ -62,7 +62,7 @@ var lastTimeMillis = 0;
 var clockTime = 0;
 var color = [0.8, 0.25, 0.25, 1.0];
 var position = [2.0, 1.5, 2.0];
-var size = 5;
+var size = 3;
 
 // Create WebGL buffers
 var lifetimeBuffer = null;
@@ -70,9 +70,6 @@ var texCoordBuffer = null;
 var triCornerBuffer = null;
 var centerOffsetBuffer = null;
 var velocityBuffer = null;
-
-
-
 
 
 // settings
@@ -215,7 +212,7 @@ function createSceneGraph(gl, resources) {
   {
     fireShaderNode = new ShaderSGNode(fireShaderProgram);
 
-    let pos = [[53, 4, 63], [55, 4, 55], [60, 4, 40], [61, 4, 30], [64, 4, 12.5], [64, 4, 6]];
+    let pos = [[53, 4, 63], [55, 4, 55], [60, 4, 40], [61, 4, 29], [64, 4, 12.5], [65, 4, 5]];
     for (var i=0; i<pos.length; i++) {
       let fireTextureNode = new TextureSGNode(resources.texture_fire, 0, 'u_particleAtlas', new RenderSGNode(makeRect(1.0, 1.0, this.vertexIndices)));
       for (var j=0; j<5; j++) {
