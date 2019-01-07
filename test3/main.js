@@ -8,8 +8,9 @@ const camera = {
 };
 
 //camera perspective
-let eye = [0,20,40];
-let center = [-1,5,20];
+let eye = [-60,23.5,87];
+let center = [-60,18,80];
+
 
 //plane perspective
 let planeX = -60;
@@ -27,9 +28,11 @@ var rotateLight;
 var lightNode;
 var heliNode;
 var heliRotorNode;
-var heliSecondRotorNode;
 var translate;
 var textureNode;
+var yacht1TransformationNode;
+var yacht2TransformationNode;
+var yacht3TransformationNode;
 
 
 // shader
@@ -197,7 +200,6 @@ function init(resources) {
 
 
 function createWater(gl, resources){
-
   var waterShaderNode  = new ShaderSGNode(waterShaderProgram);
   let waterRenderNode = new RenderSGNode(resources.waterPlane100_100);
   waterShaderNode.append(new TransformationSGNode(glm.transform({ translate: [0,0,0], scale: 3}), [waterRenderNode]));
@@ -210,7 +212,6 @@ function createSceneGraph(gl, resources) {
   const root = new ShaderSGNode(textureShaderProgram);
 
   // create water node
-
   waterScene = createWater(gl,resources);
 
   {
@@ -232,8 +233,7 @@ function createSceneGraph(gl, resources) {
 
 
     //create root scenegraph
-
-    textures = {heli: resources.heli_tex, marmor: resources.scan_tex};
+    textures = {heli: resources.heli_tex, marmor: resources.scan_tex, rock1: resources.rock1_tex};
 
 
     {
@@ -262,7 +262,7 @@ function createSceneGraph(gl, resources) {
         scanMaterial.specular = [0.5, 0.5, 0.5, 1];
         scanMaterial.shininess = 4.0;
 
-        let scanNode = new TransformationSGNode(glm.transform({ translate: [58,-5,60], rotateY: 5, rotateX : 272, rotateZ: 90, scale: 45.05 }),  [
+        let scanNode = new TransformationSGNode(glm.transform({ translate: [58,-5,60], rotateY: 0, rotateX : 272, rotateZ: 85, scale: 45.05 }),  [
             scanMaterial
         ]);
         root.append(scanNode);
@@ -278,7 +278,7 @@ function createSceneGraph(gl, resources) {
         scanMaterial.specular = [0.5, 0.5, 0.5, 1];
         scanMaterial.shininess = 4.0;
 
-        let scanNode = new TransformationSGNode(glm.transform({ translate: [73,0,11], rotateY: 5 ,rotateX : 272, rotateZ: 90, scale: 47.5 }),  [
+        let scanNode = new TransformationSGNode(glm.transform({ translate: [71,-0.5,11], rotateY: 0 ,rotateX : 270, rotateZ: 95, scale: 45.05 }),  [
             scanMaterial
         ]);
         root.append(scanNode);
@@ -294,12 +294,11 @@ function createSceneGraph(gl, resources) {
         scanMaterial.specular = [0.5, 0.5, 0.5, 1];
         scanMaterial.shininess = 4.0;
 
-        let scanNode = new TransformationSGNode(glm.transform({ translate: [65,-0,35], rotateY: 5, rotateX : 272, rotateZ: 90, scale: 45.05 }),  [
+        let scanNode = new TransformationSGNode(glm.transform({ translate: [67, 0, 36], rotateY: 0, rotateX : 270, rotateZ: 75, scale: 45.05 }),  [
             scanMaterial
         ]);
         root.append(scanNode);
     }
-
 
     {
         let textureNode = new TextureSGNode(Object.values(textures)[0], 0, 'u_diffuseTex',new RenderSGNode(resources.heli_model));
@@ -342,19 +341,46 @@ function createSceneGraph(gl, resources) {
         yachtMaterialNode.specular = [0.5, 0.5, 0.5, 1];
         yachtMaterialNode.shininess = 4.0;
 
-        var yachtTransformationNode = new TransformationSGNode(glm.transform({ translate: [0,2, 0], scale: 0.1 }),  [yachtMaterialNode]);
-        root.append(yachtTransformationNode);
-      }
+        yacht1TransformationNode = new TransformationSGNode(glm.transform({ translate: [30, 3.5, -20], scale: 0.1 }),  [yachtMaterialNode]);
+        root.append(yacht1TransformationNode);
+    }
+
+    {
+        var yachtTextureNode = new TextureSGNode(resources.texture_yacht, 0, 'u_diffuseTex', new RenderSGNode(resources.model_yacht));
+        let yachtMaterialNode = new MaterialSGNode(yachtTextureNode);
+
+        yachtMaterialNode.ambient = [0.0, 0.0, 0.0, 1];
+        yachtMaterialNode.diffuse = [0.25, 0.13, 0.1, 1];
+        yachtMaterialNode.specular = [0.5, 0.5, 0.5, 1];
+        yachtMaterialNode.shininess = 4.0;
+
+        yacht2TransformationNode = new TransformationSGNode(glm.transform({ translate: [-30, 4.5, -80], scale: 0.13, rotateY: 90 }),  [yachtMaterialNode]);
+        root.append(yacht2TransformationNode);
+    }
+
+    {
+        var yachtTextureNode = new TextureSGNode(resources.texture_yacht, 0, 'u_diffuseTex', new RenderSGNode(resources.model_yacht));
+        let yachtMaterialNode = new MaterialSGNode(yachtTextureNode);
+
+        yachtMaterialNode.ambient = [0.0, 0.0, 0.0, 1];
+        yachtMaterialNode.diffuse = [0.25, 0.13, 0.1, 1];
+        yachtMaterialNode.specular = [0.5, 0.5, 0.5, 1];
+        yachtMaterialNode.shininess = 4.0;
+
+        yacht3TransformationNode = new TransformationSGNode(glm.transform({ translate: [-80, 3.5, 20], scale: 0.1, rotateY: 180 }),  [yachtMaterialNode]);
+        root.append(yacht3TransformationNode);
+    }
 
     return root;
 }
 
 function render(timeInMilliSeconds){
-
-    // compute delta between frames
+// compute delta between frames
     let delta = timeInMilliSeconds - lastTimeMillis;
     lastTimeMillis = timeInMilliSeconds;
     clockTime += delta / 1000;
+
+    drivePlane(timeInMilliSeconds);
 
     checkForWindowResize(gl);
 
@@ -783,8 +809,7 @@ function drivePlane(timeInMilliSeconds) {
     let keyframe26 = 127000;
     let keyframe27 = 133000;
     let keyframe28 = 137000;
-    let keyframe29 = 143000;
-    let keyframe30 = 150000;
+    let keyframe29 = 145000;
 
     if(timeInMilliSeconds > buffer) {
         if (timeInMilliSeconds < keyframe1) {
@@ -980,7 +1005,7 @@ function drivePlane(timeInMilliSeconds) {
         else if (timeInMilliSeconds < keyframe25) {
             let percent = calcProzent(timeInMilliSeconds - keyframe24, (keyframe25 - keyframe24));
             planeX = lerp(20, 40, percent);
-            planeZ = lerp(80, 120, percent);
+            planeZ = lerp(80, 130, percent);
             eye[0] = lerp(12, 29, percent);
             eye[2] = lerp(54.5, 57, percent);
             let centerX = lerp(30, 58, percent);
@@ -990,6 +1015,7 @@ function drivePlane(timeInMilliSeconds) {
         }
         else if (timeInMilliSeconds < keyframe26) {
             let percent = calcProzent(timeInMilliSeconds - keyframe25, (keyframe26 - keyframe25));
+            planeZ = lerp(130, 200, percent);
             let centerX = lerp(58, 73, percent);
             let centerZ = lerp(60, 10, percent);
             eye[0] = lerp(29, 44, percent);
@@ -1009,14 +1035,8 @@ function drivePlane(timeInMilliSeconds) {
         }
         else if (timeInMilliSeconds < keyframe29) {
             let percent = calcProzent(timeInMilliSeconds - keyframe28, (keyframe29 - keyframe28));
-            eye[0] = lerp(58, 42, percent);
-            eye[2] = lerp(-35, -65, percent);
-        }
-        else if (timeInMilliSeconds < keyframe30) {
-            let percent = calcProzent(timeInMilliSeconds - keyframe29, (keyframe30 - keyframe29));
-            eye[0] = lerp(42, 16, percent);
-            eye[1] = lerp(5, 30, percent);
-            eye[2] = lerp(-65, -95, percent);
+            eye[0] = lerp(58, 36, percent);
+            eye[2] = lerp(-35, -75, percent);
         }
     }
 
