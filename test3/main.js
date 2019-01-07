@@ -55,26 +55,11 @@ var heightImage;
 var heightTexture;
 
 // fire
-var particleSystems = [];
-var currentParticleSystemIndex = 0;
-var fireParticleSystem = null;
-
 var lastTimeMillis = 0;
 var clockTime = 0;
-
-// fire 2.0
-var fireShaderNode;
-var previousTime = new Date().getTime()
-
-var clockTime = 3
-
-var redFirePos = [2.0, 1.5, 2.0]
-var redFireColor = [0.8, 0.25, 0.25, 1.0]
-
-var purpFirePos = [0.5, 0.0, 0.0]
-var purpFireColor = [0.25, 0.25, 8.25, 1.0]
-
-// fire 3.0
+var color = [0.8, 0.25, 0.25, 1.0];
+var position = [2.0, 1.5, 2.0];
+var size = 5;
 
 // Create WebGL buffers
 var lifetimeBuffer = null;
@@ -84,15 +69,8 @@ var centerOffsetBuffer = null;
 var velocityBuffer = null;
 
 
-var fireShaderNode;
-var color = [0.8, 0.25, 0.25, 1.0];
-var position = [2.0, 1.5, 2.0];
-var repeat = true;
-var size = 5;
-var lifetime = 5.0;
-var numOfParticles = 1000;
-var upVelocity = 0.1 * Math.random();
-var sideVelocity = 0.2;
+
+
 
 // settings
 var canvasWidth = 1200;
@@ -131,8 +109,7 @@ loadResources({
     vs_single: 'shader/single.vs.glsl',
     fs_single: 'shader/single.fs.glsl',
 
-    vs_simple: 'shader/simple.vs.glsl',
-    fs_simple: 'shader/simple.fs.glsl',
+    // texture shader
     vs_texture: 'shader/texture.vs.glsl',
     fs_texture: 'shader/texture.fs.glsl',
 
@@ -154,7 +131,8 @@ loadResources({
     texture_yacht: '../textures/boat_texture.jpg',
 
     // water
-    waterPlane100_100: '../models/water300_300.obj',
+    model_water: '../models/water.obj',
+    texture_water: '../textures/waterTexture.png',
 
     // fire
     texture_fire: '../textures/fire.jpg',
@@ -204,131 +182,9 @@ function init(resources) {
     //create scenegraph
     root = createSceneGraph(gl, resources);
 
+    // ??
     gl.enable(gl.BLEND);
 
-}
-
-function createFire(gl, resources) {
-
-  var numParticles = 1000;
-  var lifetimes = [];
-  var triCorners = [];
-  var texCoords = [];
-  var vertexIndices = [];
-  var centerOffsets = [];
-  var velocities = [];
-
-  var triCornersCycle = [-1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0];
-  var texCoordsCycle = [0, 0, 1, 0, 1, 1, 0, 1];
-
-  for (var i=0; i<numParticles; i++) {
-    var lifetime = 8 * Math.random();
-
-    var diameterAroundCenter = 0.5;
-    var halfDiameterAroundCenter = diameterAroundCenter / 2;
-
-    var xStartOffset = diameterAroundCenter * Math.random() - halfDiameterAroundCenter;
-    xStartOffset /= 3;
-
-    var yStartOffset = diameterAroundCenter * Math.random() - halfDiameterAroundCenter;
-    yStartOffset /= 10;
-
-    var zStartOffset = diameterAroundCenter * Math.random() - halfDiameterAroundCenter;
-    zStartOffset /= 3;
-
-    var upVelocity = 0.1 * Math.random();
-
-    var xSideVelocity = 0.02 * Math.random();
-
-    if (xStartOffset > 0) xSideVelocity *= -1;
-
-    var zSideVelocity = 0.02 * Math.random();
-
-    if (zStartOffset > 0) zSideVelocity *= -1;
-
-    for (var j=0; j<4; j++) {
-      lifetimes.push(lifetime);
-
-      triCorners.push(triCornersCycle[j * 2]);
-      triCorners.push(triCornersCycle[j * 2 + 1]);
-
-      texCoords.push(texCoordsCycle[j * 2]);
-      texCoords.push(texCoordsCycle[j * 2 + 1]);
-
-      centerOffsets.push(xStartOffset);
-      centerOffsets.push(yStartOffset + Math.abs(xStartOffset / 2.0));
-      centerOffsets.push(zStartOffset);
-
-      velocities.push(xSideVelocity);
-      velocities.push(upVelocity);
-      velocities.push(zSideVelocity);
-    }
-
-    vertexIndices = vertexIndices.concat([0, 1, 2, 0, 2, 3].map(function (num) {
-      return num + 4 * i
-    }));
-  }
-
-  // Create WebGL buffers
-  lifetimeBuffer = createBuffer('ARRAY_BUFFER', Float32Array, lifetimes);
-  texCoordBuffer = createBuffer('ARRAY_BUFFER', Float32Array, texCoords);
-  triCornerBuffer = createBuffer('ARRAY_BUFFER', Float32Array, triCorners);
-  centerOffsetBuffer = createBuffer('ARRAY_BUFFER', Float32Array, centerOffsets);
-  velocityBuffer = createBuffer('ARRAY_BUFFER', Float32Array, velocities);
-  createBuffer('ELEMENT_ARRAY_BUFFER', Uint16Array, vertexIndices);
-}
-
-function setupParticleProgram() {
-    gl.useProgram(fireShaderNode.program);
-    var lifetimeAttrib = gl.getAttribLocation(
-        fireShaderNode.program, 'aLifetime'
-    )
-    var texCoordAttrib = gl.getAttribLocation(
-        fireShaderNode.program, 'aTextureCoords'
-    )
-    var triCornerAttrib = gl.getAttribLocation(
-        fireShaderNode.program, 'aTriCorner'
-    )
-    var centerOffsetAttrib = gl.getAttribLocation(
-        fireShaderNode.program, 'aCenterOffset'
-    )
-    var velocityAttrib = gl.getAttribLocation(
-        fireShaderNode.program, 'aVelocity'
-    )
-    gl.enableVertexAttribArray(lifetimeAttrib)
-    gl.enableVertexAttribArray(texCoordAttrib)
-    gl.enableVertexAttribArray(triCornerAttrib)
-    gl.enableVertexAttribArray(centerOffsetAttrib)
-    gl.enableVertexAttribArray(velocityAttrib)
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, lifetimeBuffer);
-    gl.vertexAttribPointer(lifetimeAttrib, 1, gl.FLOAT, false, 0, 0)
-    gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
-    gl.vertexAttribPointer(texCoordAttrib, 2, gl.FLOAT, false, 0, 0)
-    gl.bindBuffer(gl.ARRAY_BUFFER, triCornerBuffer);
-    gl.vertexAttribPointer(triCornerAttrib, 2, gl.FLOAT, false, 0, 0)
-    gl.bindBuffer(gl.ARRAY_BUFFER, centerOffsetBuffer);
-    gl.vertexAttribPointer(centerOffsetAttrib, 3, gl.FLOAT, false, 0, 0)
-    gl.bindBuffer(gl.ARRAY_BUFFER, velocityBuffer);
-    gl.vertexAttribPointer(velocityAttrib, 3, gl.FLOAT, false, 0, 0)
-}
-
-function createBuffer (bufferType, DataType, data) {
-    var buffer = gl.createBuffer()
-    gl.bindBuffer(gl[bufferType], buffer)
-    gl.bufferData(gl[bufferType], new DataType(data), gl.STATIC_DRAW)
-    return buffer
-}
-
-
-
-
-function createWater(gl, resources){
-
-  var waterShaderNode  = new ShaderSGNode(waterShaderProgram);
-  let waterRenderNode = new RenderSGNode(resources.waterPlane100_100);
-  waterShaderNode.append(new TransformationSGNode(glm.transform({ translate: [0,0,0], scale: 3}), [waterRenderNode]));
-  return waterShaderNode;
 }
 
 
@@ -343,8 +199,11 @@ function createSceneGraph(gl, resources) {
 
   {
     let waterShaderNode = new ShaderSGNode(waterShaderProgram);
-    let waterRenderNode = new RenderSGNode(resources.waterPlane100_100);
-    let waterTransformationNode = new TransformationSGNode(glm.transform({ translate: [0,0,0], rotateZ: -180, scale: 3}), [waterRenderNode]);
+    let waterTextureNode = new TextureSGNode(resources.texture_water, 0, 'u_diffuseTex', new RenderSGNode(resources.model_water));
+    let waterTransformationNode = new TransformationSGNode(glm.transform({ translate: [0,0,0], rotateZ: -180, scale: 3}), [waterTextureNode]);
+
+    // let waterRenderNode = new RenderSGNode(resources.model_water);
+    // let waterTransformationNode = new TransformationSGNode(glm.transform({ translate: [0,0,0], rotateZ: -180, scale: 3}), [waterRenderNode]);
     waterShaderNode.append(waterTransformationNode);
     root.append(waterShaderNode);
   }
@@ -375,8 +234,6 @@ function createSceneGraph(gl, resources) {
       }
     }
   }
-
-  setupParticleProgram();
 
   {
     //initialize light
@@ -487,12 +344,11 @@ function render(timeInMilliSeconds){
     //render scenegraph
     root.render(context);
 
+    // water
     gl.useProgram(waterShaderProgram);
     setUpWaterUniforms(timeInMilliSeconds);
     bindWaterTextures();
-
     waterScene.render(context);
-
     unbindWaterTextures();
 
     // fire
@@ -545,6 +401,83 @@ function initCubeMap(resources, skybox_imgs) {
 // ----- FIRE ------------------------------------------------
 // -----------------------------------------------------------
 
+function createFire(gl, resources) {
+
+  var numParticles = 1000;
+  var lifetimes = [];
+  var triCorners = [];
+  var texCoords = [];
+  var vertexIndices = [];
+  var centerOffsets = [];
+  var velocities = [];
+
+  var triCornersCycle = [-1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0];
+  var texCoordsCycle = [0, 0, 1, 0, 1, 1, 0, 1];
+
+  for (var i=0; i<numParticles; i++) {
+    var lifetime = 8 * Math.random();
+
+    var diameterAroundCenter = 0.5;
+    var halfDiameterAroundCenter = diameterAroundCenter / 2;
+
+    var xStartOffset = diameterAroundCenter * Math.random() - halfDiameterAroundCenter;
+    xStartOffset /= 3;
+
+    var yStartOffset = diameterAroundCenter * Math.random() - halfDiameterAroundCenter;
+    yStartOffset /= 10;
+
+    var zStartOffset = diameterAroundCenter * Math.random() - halfDiameterAroundCenter;
+    zStartOffset /= 3;
+
+    var upVelocity = 0.1 * Math.random();
+
+    var xSideVelocity = 0.02 * Math.random();
+
+    if (xStartOffset > 0) xSideVelocity *= -1;
+
+    var zSideVelocity = 0.02 * Math.random();
+
+    if (zStartOffset > 0) zSideVelocity *= -1;
+
+    for (var j=0; j<4; j++) {
+      lifetimes.push(lifetime);
+
+      triCorners.push(triCornersCycle[j * 2]);
+      triCorners.push(triCornersCycle[j * 2 + 1]);
+
+      texCoords.push(texCoordsCycle[j * 2]);
+      texCoords.push(texCoordsCycle[j * 2 + 1]);
+
+      centerOffsets.push(xStartOffset);
+      centerOffsets.push(yStartOffset + Math.abs(xStartOffset / 2.0));
+      centerOffsets.push(zStartOffset);
+
+      velocities.push(xSideVelocity);
+      velocities.push(upVelocity);
+      velocities.push(zSideVelocity);
+    }
+
+    vertexIndices = vertexIndices.concat([0, 1, 2, 0, 2, 3].map(function (num) {
+      return num + 4 * i
+    }));
+  }
+
+  // create WebGL buffers
+  lifetimeBuffer = createBuffer('ARRAY_BUFFER', Float32Array, lifetimes);
+  texCoordBuffer = createBuffer('ARRAY_BUFFER', Float32Array, texCoords);
+  triCornerBuffer = createBuffer('ARRAY_BUFFER', Float32Array, triCorners);
+  centerOffsetBuffer = createBuffer('ARRAY_BUFFER', Float32Array, centerOffsets);
+  velocityBuffer = createBuffer('ARRAY_BUFFER', Float32Array, velocities);
+  createBuffer('ELEMENT_ARRAY_BUFFER', Uint16Array, vertexIndices);
+}
+
+function createBuffer (bufferType, DataType, data) {
+    var buffer = gl.createBuffer()
+    gl.bindBuffer(gl[bufferType], buffer)
+    gl.bufferData(gl[bufferType], new DataType(data), gl.STATIC_DRAW)
+    return buffer
+}
+
 function enableFireVertexAttributes() {
 
     gl.useProgram(fireShaderNode.program);
@@ -580,7 +513,7 @@ function setUpFireUniforms(delta, context) {
    //gl.uniform1f(gl.getUniformLocation(fireShaderNode.program, 'uTime'), clockTime);
     gl.uniform1f(gl.getUniformLocation(fireShaderNode.program, 'uTimeFrag'), clockTime);
     gl.uniform1i(gl.getUniformLocation(fireShaderNode.program, 'uUseBillboarding'), true);
-    gl.uniform1i(gl.getUniformLocation(fireShaderNode.program, 'uRepeating'), repeat);
+    gl.uniform1i(gl.getUniformLocation(fireShaderNode.program, 'uRepeating'), true);
 
     gl.uniform3fv(gl.getUniformLocation(fireShaderNode.program, 'uFirePos'), position);
     gl.uniform4fv(gl.getUniformLocation(fireShaderNode.program, 'uColor'), color);
@@ -690,6 +623,15 @@ class EnvironmentSGNode extends SGNode {
 // WATER /////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////
 
+function createWater(gl, resources){
+
+  let waterShaderNode = new ShaderSGNode(waterShaderProgram);
+  let waterRenderNode = new RenderSGNode(resources.model_water);
+  let waterTransformationNode = new TransformationSGNode(glm.transform({ translate: [0,0,0], scale: 3}), [waterRenderNode]);
+  waterShaderNode.append(waterTransformationNode);
+  return waterShaderNode;
+}
+
 function initWaterReflectionFramebuffer(){
   var depthTextureExt = gl.getExtension("WEBGL_depth_texture");
   if(!depthTextureExt) { alert('No depth texture support!!!'); return; }
@@ -775,7 +717,7 @@ function handleTextureLoaded(image, texture) {
   gl.generateMipmap(gl.TEXTURE_2D);
   gl.bindTexture(gl.TEXTURE_2D, null);
 }
-
+/*
 function enableAboveWaterClipping(shader){
   gl.useProgram(shader);
   gl.uniform1i(gl.getUniformLocation(shader, 'enableClipping'),1);
@@ -794,13 +736,13 @@ function enableUnderWaterClipping(shader){
 function disableWaterClipping(shader){
   gl.useProgram(shader);
   gl.uniform1i(gl.getUniformLocation(shader, 'enableClipping'),0);
-}
+}*/
 
 function RenderWaterReflectionTexture(){
 
   gl.bindFramebuffer(gl.FRAMEBUFFER, waterReflectionFramebuffer);
 
-  gl.viewport(0, 0, canvasWidth, canvasHeight);
+  //gl.viewport(0, 0, canvasWidth, canvasHeight);
   gl.clearColor(0,0, 0, 0);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -815,17 +757,18 @@ function RenderWaterReflectionTexture(){
   context.viewMatrix = mat4.multiply(mat4.create(), lookAtMatrix, mouseRotateMatrix);
   context.invViewMatrix = mat4.invert(mat4.create(), context.viewMatrix);
 
-  enableAboveWaterClipping(singleShaderProgram);
-  enableAboveWaterClipping(textureShaderProgram);
+  //enableAboveWaterClipping(singleShaderProgram);
+  //enableAboveWaterClipping(textureShaderProgram);
 
   gl.useProgram(singleShaderProgram);
-  gl.uniform3fv( gl.getUniformLocation(singleShaderProgram, "u_reverseLightDirection"),  reverseSunDirection);
-  gl.uniform1i( gl.getUniformLocation(singleShaderProgram, "u_diffuseTexEnabled"), 0);
+  gl.uniform3fv(gl.getUniformLocation(singleShaderProgram, "u_reverseLightDirection"),  reverseSunDirection);
+  gl.uniform1i(gl.getUniformLocation(singleShaderProgram, "u_diffuseTexEnabled"), 0);
+
   gl.useProgram(textureShaderProgram);
-  gl.uniform3fv( gl.getUniformLocation(textureShaderProgram, "u_reverseLightDirection"), reverseSunDirection);
+  gl.uniform3fv(gl.getUniformLocation(textureShaderProgram, "u_reverseLightDirection"), reverseSunDirection);
   root.render(context);
-  disableWaterClipping(singleShaderProgram);
-  disableWaterClipping(textureShaderProgram);
+  //disableWaterClipping(singleShaderProgram);
+  //disableWaterClipping(textureShaderProgram);
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 }
 
@@ -835,13 +778,13 @@ function RenderWaterRefractionTexture(context){
   gl.viewport(0, 0, canvasWidth, canvasHeight);
   gl.clearColor(0, 0, 0, 0);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-  enableUnderWaterClipping(singleShaderProgram);
-  enableUnderWaterClipping(textureShaderProgram);
+  //(singleShaderProgram);
+  //enableUnderWaterClipping(textureShaderProgram);
   gl.useProgram(textureShaderProgram);
   gl.uniform3fv( gl.getUniformLocation(textureShaderProgram, "u_reverseLightDirection"), reverseSunDirection);
   root.render(context);
-  disableWaterClipping(singleShaderProgram);
-  disableWaterClipping(textureShaderProgram);
+  //disableWaterClipping(singleShaderProgram);
+  //disableWaterClipping(textureShaderProgram);
 
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 }
