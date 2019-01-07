@@ -1,4 +1,3 @@
-
 attribute vec3 a_position;
 attribute vec2 a_texCoord;
 
