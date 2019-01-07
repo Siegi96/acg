@@ -1,7 +1,7 @@
 class ParticleSystemNode {
 
     constructor(gl, resources) {
-        this.particlesRoot = null;
+        this.shaderNode = null;
         this.vertexIndices = [];
         this.clockTime = 0;
 
@@ -22,7 +22,7 @@ class ParticleSystemNode {
     }
 
     createParticleSystem(gl, resources) {
-        this.particlesRoot = new ShaderSGNode(createProgram(gl, resources.vs_fire, resources.fs_fire));
+        this.shaderNode = new ShaderSGNode(createProgram(gl, resources.vs_fire, resources.fs_fire));
     }
 
     createParticleValues(gl, resources) {
@@ -112,7 +112,7 @@ class ParticleSystemNode {
         // Create particles texture
         var particleTextureNode = new TextureSGNode(resources.texture_fire, 0, 'u_particleAtlas', new RenderSGNode(makeRect(1.0, 1.0, this.vertexIndices)));
         particleTextureNode.init(gl);
-        this.particlesRoot.append(particleTextureNode);
+        this.shaderNode.append(particleTextureNode);
     }
 
     createBuffer (bufferType, DataType, data) {
@@ -123,21 +123,21 @@ class ParticleSystemNode {
     }
 
     setupParticleProgram() {
-        gl.useProgram(this.particlesRoot.program);
+        gl.useProgram(this.shaderNode.program);
         var lifetimeAttrib = gl.getAttribLocation(
-            this.particlesRoot.program, 'aLifetime'
+            this.shaderNode.program, 'aLifetime'
         )
         var texCoordAttrib = gl.getAttribLocation(
-            this.particlesRoot.program, 'aTextureCoords'
+            this.shaderNode.program, 'aTextureCoords'
         )
         var triCornerAttrib = gl.getAttribLocation(
-            this.particlesRoot.program, 'aTriCorner'
+            this.shaderNode.program, 'aTriCorner'
         )
         var centerOffsetAttrib = gl.getAttribLocation(
-            this.particlesRoot.program, 'aCenterOffset'
+            this.shaderNode.program, 'aCenterOffset'
         )
         var velocityAttrib = gl.getAttribLocation(
-            this.particlesRoot.program, 'aVelocity'
+            this.shaderNode.program, 'aVelocity'
         )
         gl.enableVertexAttribArray(lifetimeAttrib)
         gl.enableVertexAttribArray(texCoordAttrib)
@@ -212,14 +212,14 @@ class ParticleSystemNode {
         // Additive blending
         gl.blendFunc(gl.ONE, gl.ONE);
 
-        gl.uniform1f(gl.getUniformLocation(this.particlesRoot.program, 'uTime'), this.clockTime);
-        gl.uniform1f(gl.getUniformLocation(this.particlesRoot.program, 'uTimeFrag'), this.clockTime);
-        gl.uniform1i(gl.getUniformLocation(this.particlesRoot.program, 'uUseBillboarding'), true);
-        gl.uniform1i(gl.getUniformLocation(this.particlesRoot.program, 'uRepeating'), this.repeat);
+        gl.uniform1f(gl.getUniformLocation(this.shaderNode.program, 'uTime'), this.clockTime);
+        gl.uniform1f(gl.getUniformLocation(this.shaderNode.program, 'uTimeFrag'), this.clockTime);
+        gl.uniform1i(gl.getUniformLocation(this.shaderNode.program, 'uUseBillboarding'), true);
+        gl.uniform1i(gl.getUniformLocation(this.shaderNode.program, 'uRepeating'), this.repeat);
 
-        gl.uniform3fv(gl.getUniformLocation(this.particlesRoot.program, 'uFirePos'), this.position);
-        gl.uniform4fv(gl.getUniformLocation(this.particlesRoot.program, 'uColor'), this.color);
-        gl.uniform1f(gl.getUniformLocation(this.particlesRoot.program, 'uSize'), this.size);
-        this.particlesRoot.render(context);
+        gl.uniform3fv(gl.getUniformLocation(this.shaderNode.program, 'uFirePos'), this.position);
+        gl.uniform4fv(gl.getUniformLocation(this.shaderNode.program, 'uColor'), this.color);
+        gl.uniform1f(gl.getUniformLocation(this.shaderNode.program, 'uSize'), this.size);
+        this.shaderNode.render(context);
     }
 }
