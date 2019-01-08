@@ -8,11 +8,6 @@ uniform vec3 u_sunDirection;
 uniform vec3 u_sunColor;
 uniform vec3 u_horizonColor;
 uniform vec3 u_zenithColor;
-uniform vec3 u_fogColor;
-
-uniform float u_atmosphereDensity;
-uniform float u_fogDensity;
-uniform float u_fogFalloff;
 
 varying vec3 v_eyePos;
 varying vec3 v_worldPos;
