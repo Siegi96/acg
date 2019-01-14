@@ -1,3 +1,10 @@
+/*
+As we simulate our particle our fragment shader calculates a number between 0 and ` called percentOfLife.
+Based on the percentage of the particle’s life that has elapsed we choose one of the 16 textures in the texture atlas that we downloaded earlier.
+
+Lastly we multiply gl_FragColor.a *= vLifetime;. This means that as vLifetime decreases the fragment fades away.
+*/
+
 precision mediump float;
 
 uniform vec4 uColor;

@@ -1,3 +1,16 @@
+/*
+Our vertex shader is the meat of our particle effect implementation.
+
+We start by taking our current clock time modulus the lifetime of the particle. This makes our particles restart from the beginning of their motion whenever their life expires.
+
+We then position our particle at the location of our fire, plus the offset from this fire location, plus the velocity of the particle times the amount of time that has elapsed in it’s lifetime simulation.
+
+vLifetime is a number between 1 and 0 that decreases as the particle ages. We to size our particle proportionally to its age. It starts off large but then shrinks as it ages.
+
+After that, if billboarding is turned on, we get the camera’s up and right direction in world space. Since we know the up and right direction of the camera we know the plane that the camera is facing. We use the billboards center position,
+the size of the billboard and the camera’s up and right vectors in order to position the current vertex along the plane that the camera is facing.
+
+*/
 uniform float uTime;
 uniform vec3 uFirePos;
 uniform float uSize;
